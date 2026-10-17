@@ -55,8 +55,28 @@ function toMono(buf) {
   return out;
 }
 
-/** Convert any browser-decodable audio Blob/File to a WAV Blob. */
-export async function toWav(blob, { sampleRate, channels } = DEFAULT_WAV) {
+/** The model scores at most five seconds at a time and rejects longer clips. */
+export const WINDOW_SECONDS = 5;
+
+/**
+ * Split `totalFrames` into consecutive windows of at most `windowSeconds`.
+ * A short trailing remainder (under `minTailSeconds`) is dropped unless it is the only window,
+ * so a recorder chunk that overshoots 5 s by a few milliseconds still yields one clean window.
+ */
+export function windowRanges(totalFrames, sampleRate, windowSeconds = WINDOW_SECONDS, minTailSeconds = 1) {
+  const size = Math.round(windowSeconds * sampleRate);
+  const minTail = Math.round(minTailSeconds * sampleRate);
+  const ranges = [];
+  for (let start = 0; start < totalFrames; start += size) {
+    const end = Math.min(start + size, totalFrames);
+    if (ranges.length > 0 && end - start < minTail) break;
+    ranges.push([start, end]);
+  }
+  return ranges;
+}
+
+/** Decode any browser-decodable audio Blob/File to planar float samples at the requested rate. */
+async function decodePlanar(blob, { sampleRate, channels }) {
   const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const encoded = await blob.arrayBuffer();
 
@@ -78,10 +98,23 @@ export async function toWav(blob, { sampleRate, channels } = DEFAULT_WAV) {
     buf = await ctx.startRendering();
   }
 
-  const planar =
-    channels === 1
-      ? [toMono(buf)]
-      : Array.from({ length: channels }, (_, c) => buf.getChannelData(Math.min(c, buf.numberOfChannels - 1)));
+  return channels === 1
+    ? [toMono(buf)]
+    : Array.from({ length: channels }, (_, c) => buf.getChannelData(Math.min(c, buf.numberOfChannels - 1)));
+}
 
-  return encodeWav(planar, sampleRate);
+/** Convert any browser-decodable audio Blob/File to a single WAV Blob (no length limit). */
+export async function toWav(blob, options = DEFAULT_WAV) {
+  return encodeWav(await decodePlanar(blob, options), options.sampleRate);
+}
+
+/** Convert audio to a list of WAV windows of at most five seconds: [{ blob, start, end }] (seconds). */
+export async function toWavWindows(blob, options = DEFAULT_WAV, windowSeconds = WINDOW_SECONDS) {
+  const planar = await decodePlanar(blob, options);
+  const rate = options.sampleRate;
+  return windowRanges(planar[0].length, rate, windowSeconds).map(([start, end]) => ({
+    blob: encodeWav(planar.map(ch => ch.subarray(start, end)), rate),
+    start: start / rate,
+    end: end / rate,
+  }));
 }

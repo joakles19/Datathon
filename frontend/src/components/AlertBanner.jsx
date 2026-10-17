@@ -3,7 +3,7 @@ export default function AlertBanner({ alert, onAck }) {
   return (
     <div className="banner" role="alert">
       <span>
-        Possible break-in: {alert.label.replace(/_/g, ' ')} ({Math.round(alert.confidence * 100)}%) —{' '}
+        {alert.message || 'Sound alert'} · {alert.label.replace(/_/g, ' ')} (score {Math.round(alert.confidence * 100)}%) ·{' '}
         {new Date(alert.time).toLocaleTimeString()}
       </span>
       <button onClick={onAck}>Acknowledge</button>

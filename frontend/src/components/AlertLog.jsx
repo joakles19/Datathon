@@ -8,14 +8,17 @@ export default function AlertLog({ history, onClear }) {
         <button className="mini" onClick={onClear} disabled={!history.length}>Clear</button>
       </h2>
       {history.length === 0 && <div className="empty">No events yet.</div>}
-      {history.slice(0, 12).map(h => (
+      {history.slice(0, 12).map(h => {
+        const kind = h.action === 'alert' || h.action === 'suppressed' ? h.action : h.action ? 'clear' : h.alert ? 'alert' : 'clear';
+        return (
         <div key={h.id} className="logrow">
           <span>
             {new Date(h.time).toLocaleTimeString()} · {(h.label || '').replace(/_/g, ' ')} ({pct(h.confidence)})
           </span>
-          <span className={`tag ${h.alert ? 'alert' : 'clear'}`}>{h.alert ? 'alert' : 'clear'}</span>
+          <span className={`tag ${kind}`}>{kind}</span>
         </div>
-      ))}
+        );
+      })}
     </section>
   );
 }

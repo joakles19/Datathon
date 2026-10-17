@@ -28,23 +28,18 @@ export default function Settings({ settings, setSettings, onTestAlert }) {
       <h2>Settings</h2>
       <label className="check">
         <input type="checkbox" checked={settings.demo} onChange={e => set({ demo: e.target.checked })} />
-        Demo mode (simulated detections, no backend)
+        Demo mode (simulated results, no backend)
       </label>
 
       <label htmlFor="api">Backend URL</label>
       <input id="api" type="text" value={settings.api} placeholder="http://localhost:8000"
         onChange={e => set({ api: e.target.value.trim() })} />
 
-      <div className="grid2" style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 12 }}>
         <div>
-          <label htmlFor="thr">Alert threshold: <b>{settings.threshold}%</b></label>
-          <input id="thr" type="range" min="10" max="99" value={settings.threshold}
-            onChange={e => set({ threshold: +e.target.value })} />
-        </div>
-        <div>
-          <label htmlFor="chunk">Monitor chunk (seconds)</label>
-          <input id="chunk" type="number" min="2" max="30" value={settings.chunk}
-            onChange={e => set({ chunk: Math.min(30, Math.max(2, +e.target.value || 5)) })} />
+          <label htmlFor="chunk">Monitor chunk (2–5 s)</label>
+          <input id="chunk" type="number" min="2" max="5" value={settings.chunk}
+            onChange={e => set({ chunk: Math.min(5, Math.max(2, +e.target.value || 5)) })} />
         </div>
       </div>
 
