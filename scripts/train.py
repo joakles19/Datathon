@@ -1,4 +1,4 @@
-"""Train the Random Forest baseline and evaluate it on ESC-50 fold 4."""
+"""Train the HearHere v2 Random Forest and evaluate it on ESC-50 fold 4."""
 
 import argparse
 import csv
@@ -29,6 +29,7 @@ from hearhere_audio.config import (
     CLASSES,
     FEATURE_ORDER,
     HOP_LENGTH,
+    MODEL_VERSION,
     N_FFT,
     N_MELS,
     N_MFCC,
@@ -46,13 +47,15 @@ DEFAULT_MODEL_DIR = PROJECT_ROOT / "models"
 DEFAULT_REPORT_DIR = PROJECT_ROOT / "reports"
 TRAIN_FOLDS = (1, 2, 3)
 VALIDATION_FOLD = 4
+FINAL_TEST_FOLD = 5
+EXPECTED_CLIPS_PER_CLASS_PER_FOLD = 8
 RANDOM_SEED = 42
 N_ESTIMATORS = 300
 MINIMUM_ALERT_RECALL = 0.75
 
 
 def read_rows(dataset_root: Path) -> list[dict[str, str]]:
-    """Read and validate only folds used for training and validation."""
+    """Read train, validation, and held-out test metadata for the split manifest."""
     metadata_path = dataset_root / "meta" / "esc50.csv"
     audio_dir = dataset_root / "audio"
     if not metadata_path.is_file():
@@ -79,7 +82,7 @@ def read_rows(dataset_root: Path) -> list[dict[str, str]]:
     rows = [
         row
         for row in selected_rows
-        if int(row["fold"]) in (*TRAIN_FOLDS, VALIDATION_FOLD)
+        if int(row["fold"]) in (*TRAIN_FOLDS, VALIDATION_FOLD, FINAL_TEST_FOLD)
     ]
 
     rows.sort(key=lambda row: (int(row["fold"]), row["filename"]))
@@ -91,13 +94,12 @@ def read_rows(dataset_root: Path) -> list[dict[str, str]]:
     if missing:
         raise FileNotFoundError(f"Missing audio files ({len(missing)}): {missing[:5]}")
 
-    expected_classes_per_fold = 8
     counts = Counter((int(row["fold"]), row["category"]) for row in rows)
     incorrect = {
         (fold, category): counts[(fold, category)]
-        for fold in (*TRAIN_FOLDS, VALIDATION_FOLD)
+        for fold in (*TRAIN_FOLDS, VALIDATION_FOLD, FINAL_TEST_FOLD)
         for category in CLASSES
-        if counts[(fold, category)] != expected_classes_per_fold
+        if counts[(fold, category)] != EXPECTED_CLIPS_PER_CLASS_PER_FOLD
     }
     if incorrect:
         raise ValueError(f"Unexpected class counts per fold: {incorrect}")
@@ -255,7 +257,11 @@ def write_manifest(path: Path, rows: list[dict[str, str]]) -> None:
         )
         for row in rows:
             fold = int(row["fold"])
-            split = "train" if fold in TRAIN_FOLDS else "validation"
+            split = (
+                "train" if fold in TRAIN_FOLDS
+                else "validation" if fold == VALIDATION_FOLD
+                else "test"
+            )
             writer.writerow(
                 [
                     row["filename"], row["target"], row["category"], fold, split,
@@ -277,10 +283,18 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     audio_dir = dataset_root / "audio"
     train_rows = [row for row in rows if int(row["fold"]) in TRAIN_FOLDS]
     validation_rows = [row for row in rows if int(row["fold"]) == VALIDATION_FOLD]
-    if len(train_rows) != 192 or len(validation_rows) != 64:
+    final_test_rows = [row for row in rows if int(row["fold"]) == FINAL_TEST_FOLD]
+    expected_train = len(CLASSES) * len(TRAIN_FOLDS) * EXPECTED_CLIPS_PER_CLASS_PER_FOLD
+    expected_validation = len(CLASSES) * EXPECTED_CLIPS_PER_CLASS_PER_FOLD
+    if (
+        len(train_rows) != expected_train
+        or len(validation_rows) != expected_validation
+        or len(final_test_rows) != expected_validation
+    ):
         raise ValueError(
-            f"Expected 192 training and 64 validation rows; got "
-            f"{len(train_rows)} and {len(validation_rows)}"
+            f"Expected {expected_train} training, {expected_validation} validation, "
+            f"and {expected_validation} final-test rows; got "
+            f"{len(train_rows)}, {len(validation_rows)}, and {len(final_test_rows)}"
         )
 
     print("Extracting training features from folds 1-3")
@@ -320,7 +334,7 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     metadata = {
         "schema_version": "1.0",
         "artifact_status": "trained_fold4_validated",
-        "model_version": "hearhere-rf-v1",
+        "model_version": MODEL_VERSION,
         "model_type": "sklearn.ensemble.RandomForestClassifier",
         "created_at_utc": created_at,
         "model_sha256": sha256_file(model_path),
@@ -357,14 +371,19 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
                     category: sum(row["category"] == category for row in validation_rows)
                     for category in CLASSES
                 },
+                "final_test": {
+                    category: sum(row["category"] == category for row in final_test_rows)
+                    for category in CLASSES
+                },
             },
             "fold_counts": {
                 str(fold): sum(int(row["fold"]) == fold for row in rows)
-                for fold in (*TRAIN_FOLDS, VALIDATION_FOLD)
+                for fold in (*TRAIN_FOLDS, VALIDATION_FOLD, FINAL_TEST_FOLD)
             },
             "sample_counts": {
                 "train": len(train_rows),
                 "validation": len(validation_rows),
+                "final_test": len(final_test_rows),
             },
             "source_manifest_path": str(manifest_path.relative_to(PROJECT_ROOT))
             if manifest_path.is_relative_to(PROJECT_ROOT)
@@ -415,7 +434,7 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
         "recommended_alert_classes": list(ALERT_CLASSES),
         "minimum_scores": threshold_values,
         "validation_metrics": threshold_metrics,
-        "notes": "Selected on Fold 4 only. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Fold 5 remains reserved for final evaluation.",
+        "notes": "Selected on Fold 4 only. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Fold 5 remains reserved for final evaluation and is not used by this training run.",
     }
     validation_report = {
         "schema_version": "1.0",
@@ -467,7 +486,7 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     print(f"Saved metadata: {model_dir / 'model_metadata.json'}")
     print(f"Saved threshold recommendations: {model_dir / 'thresholds.json'}")
     print(f"Saved validation report: {report_dir / 'validation_metrics.json'}")
-    print(f"Saved used-data manifest: {manifest_path}")
+    print(f"Saved dataset split manifest: {manifest_path}")
     print(json.dumps(threshold_report, indent=2))
     print(json.dumps(metrics, indent=2))
 

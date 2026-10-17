@@ -2,12 +2,12 @@
   "artifact_status": "fold4_thresholds_selected",
   "minimum_recall": 0.75,
   "minimum_scores": {
-    "door_wood_knock": 0.5966666666666667,
-    "glass_breaking": 0.5166666666666667,
-    "siren": 0.30333333333333334
+    "door_wood_knock": 0.5833333333333334,
+    "glass_breaking": 0.44,
+    "siren": 0.22
   },
-  "model_version": "hearhere-rf-v1",
-  "notes": "Selected on Fold 4 only. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Fold 5 remains reserved for final evaluation.",
+  "model_version": "hearhere-rf-v2",
+  "notes": "Selected on Fold 4 only. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Fold 5 remains reserved for final evaluation and is not used by this training run.",
   "policy_owner": "backend",
   "recommended_alert_classes": [
     "door_wood_knock",
@@ -33,7 +33,7 @@
       "precision": 1.0,
       "recall": 0.75,
       "support": 8,
-      "threshold": 0.5966666666666667,
+      "threshold": 0.5833333333333334,
       "true_positive_count": 6
     },
     "glass_breaking": {
@@ -44,18 +44,18 @@
       "precision": 1.0,
       "recall": 0.75,
       "support": 8,
-      "threshold": 0.5166666666666667,
+      "threshold": 0.44,
       "true_positive_count": 6
     },
     "siren": {
-      "alert_count": 8,
-      "f1": 0.75,
+      "alert_count": 10,
+      "f1": 0.6666666666666665,
       "false_negative_count": 2,
-      "false_positive_count": 2,
-      "precision": 0.75,
+      "false_positive_count": 4,
+      "precision": 0.6,
       "recall": 0.75,
       "support": 8,
-      "threshold": 0.30333333333333334,
+      "threshold": 0.22,
       "true_positive_count": 6
     }
   }

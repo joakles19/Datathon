@@ -19,17 +19,17 @@ This document defines the files produced by the HearHere model workflow. Files e
 
 ## Shared values
 
-The model metadata `class_order` array is alphabetical and must match the model's score columns:
+The v2 model metadata `class_order` array is alphabetical and must match the model's score columns:
 
-`door_wood_knock`, `engine`, `glass_breaking`, `keyboard_typing`, `rain`, `siren`, `vacuum_cleaner`, `wind`.
+`car_horn`, `clock_alarm`, `crying_baby`, `door_wood_knock`, `engine`, `glass_breaking`, `keyboard_typing`, `rain`, `siren`, `vacuum_cleaner`, `wind`.
 
 The validation report's `class_order` array defines the row and column order of `confusion_matrix`. It follows `hearhere_audio/config.py`, which differs from the estimator's alphabetical score-column order. Keep both arrays explicit; do not infer one order from the other. Per-class metrics are keyed by class name.
 
-The current Fold 4 run reports 64 validation samples, 0.8125 accuracy, 0.809334 macro F1, and 0.809334 weighted F1. These values are recorded in `reports/validation_metrics.json` and describe this baseline run only; they do not establish real-world microphone performance. Preserve the source-file manifest with the run and record the dataset revision when it becomes available.
+The v2 Fold 4 run reports 88 validation samples, 0.75 accuracy, and 0.733552 macro and weighted F1. These values are recorded in `reports/validation_metrics.json` and describe this baseline run only; they do not establish real-world microphone performance. Preserve the source-file manifest with the run and record the dataset revision when it becomes available.
 
 The feature settings must match `hearhere_audio/config.py` and the shared extractor in `hearhere_audio/features.py`. The feature vector contains the means of MFCC 0-19 followed by the population standard deviations of MFCC 0-19. Metadata should record the complete extractor settings, not only the feature count.
 
-Use official ESC-50 folds: 1-3 for training, 4 for validation and threshold selection, and 5 for the final evaluation. Keep the source file manifest and actual counts with the generated run. Dataset labels, filenames, and fold numbers are bookkeeping fields; they are not model input features.
+Use official ESC-50 folds: 1-3 for training, 4 for validation and threshold selection, and 5 for the final evaluation. The v2 manifest records all 440 selected clips, while feature extraction uses only folds 1-3 for fitting and fold 4 for validation and threshold selection. Fold 5 remains unopened by feature extraction and is not evaluated during this run. Keep the source file manifest and actual counts with the generated run. Dataset labels, filenames, and fold numbers are bookkeeping fields; they are not model input features.
 
 ## Metric and threshold rules
 

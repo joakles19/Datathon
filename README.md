@@ -7,7 +7,7 @@ HearHere is a sound-awareness prototype that classifies selected environmental s
 - Shared WAV preprocessing and 40-dimensional MFCC extraction are implemented in `hearhere_audio/`.
 - The Random Forest training and Fold 4 validation flow is implemented in `scripts/train.py`.
 - Per-class Fold 4 alert thresholds are recorded in `models/thresholds.json`, using a 75% minimum recall constraint to reduce false alerts.
-- `POST /classify` loads the validated model, returns all eight class scores, and applies B's per-sound alert policy.
+- The v2 classifier recognises 11 sound classes and keeps B's existing three-class alert policy separate from the expanded vocabulary.
 - Fold 5 remains reserved for final evaluation after the model and alert rules are fixed.
 - Do not treat files ending in `.template.json` as trained-model metadata or measured results.
 
@@ -36,7 +36,7 @@ uvicorn backends.main:app --reload
 
 ## Dataset and evaluation plan
 
-The selected ESC-50 classes are `door_wood_knock`, `siren`, `glass_breaking`, `rain`, `wind`, `keyboard_typing`, `vacuum_cleaner`, and `engine`. The intended split is official folds 1-3 for training, fold 4 for validation and threshold selection, and fold 5 for final evaluation after the model and rules are fixed. Dataset files are local inputs and are not included in Git.
+The selected ESC-50 classes are `car_horn`, `clock_alarm`, `crying_baby`, `door_wood_knock`, `engine`, `glass_breaking`, `keyboard_typing`, `rain`, `siren`, `vacuum_cleaner`, and `wind`. The intended split is official folds 1-3 for training, fold 4 for validation and threshold selection, and fold 5 for final evaluation after the model and rules are fixed. The v2 run uses 264 training clips, 88 validation clips, and keeps 88 final-test clips reserved. Dataset files are local inputs and are not included in Git.
 
 ## Model artifacts
 

@@ -75,7 +75,7 @@ class HearHereClassifier:
         if tuple(self.model.classes_) != tuple(self.metadata.get("class_order", ())):
             raise ModelArtifactError("Model classes do not match model_metadata.json")
         if set(self.model.classes_) != set(CLASSES):
-            raise ModelArtifactError("Model must contain all eight configured sound classes")
+            raise ModelArtifactError("Model must contain all configured sound classes")
         if getattr(self.model, "n_features_in_", None) != len(FEATURE_ORDER):
             raise ModelArtifactError("Model feature count does not match the extractor")
         if tuple(self.thresholds.get("recommended_alert_classes", ())) != ALERT_CLASSES:
@@ -97,7 +97,7 @@ class HearHereClassifier:
                 raise ModelArtifactError(f"Threshold metrics are inconsistent for {label}")
 
     def predict_bytes(self, audio_bytes: bytes) -> dict[str, Any]:
-        """Return the top class and scores for all eight model classes."""
+        """Return the top class and scores for all configured model classes."""
         features = extract_features_from_bytes(audio_bytes).reshape(1, -1)
         scores = self.model.predict_proba(features)[0]
         score_by_class = {

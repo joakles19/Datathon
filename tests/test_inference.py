@@ -28,7 +28,7 @@ def test_classifier_returns_all_class_scores_and_model_version():
     assert set(prediction["scores"]) == set(classifier.model.classes_)
     assert prediction["label"] == max(prediction["scores"], key=prediction["scores"].get)
     assert prediction["score"] == prediction["scores"][prediction["label"]]
-    assert prediction["model_version"] == "hearhere-rf-v1"
+    assert prediction["model_version"] == "hearhere-rf-v2"
     assert sum(prediction["scores"].values()) == pytest.approx(1.0)
 
 

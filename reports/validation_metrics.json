@@ -1,6 +1,9 @@
 {
   "artifact_status": "fold4_measured_thresholds_selected",
   "class_order": [
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
     "door_wood_knock",
     "engine",
     "glass_breaking",
@@ -12,6 +15,48 @@
   ],
   "confusion_matrix": [
     [
+      2,
+      0,
+      1,
+      3,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      7,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      7,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
       7,
       0,
       1,
@@ -22,16 +67,22 @@
       0
     ],
     [
-      0,
-      4,
       2,
       0,
+      0,
+      0,
+      2,
+      1,
+      1,
       0,
       0,
       2,
       0
     ],
     [
+      0,
+      0,
+      0,
       0,
       0,
       7,
@@ -45,13 +96,19 @@
       0,
       0,
       1,
-      6,
       0,
-      1,
+      0,
+      0,
+      7,
+      0,
+      0,
       0,
       0
     ],
     [
+      0,
+      0,
+      0,
       0,
       0,
       0,
@@ -62,16 +119,22 @@
       0
     ],
     [
+      2,
       0,
-      0,
-      0,
-      0,
-      0,
-      7,
       1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      5,
+      0,
       0
     ],
     [
+      0,
+      0,
+      0,
       0,
       0,
       0,
@@ -82,111 +145,132 @@
       0
     ],
     [
-      0,
       1,
       0,
       0,
       0,
-      2,
       0,
-      5
+      0,
+      0,
+      0,
+      1,
+      0,
+      6
     ]
   ],
   "confusion_matrix_axis_order": "rows=true_class,columns=predicted_class; both follow class_order",
   "evaluation": {
     "dataset": "ESC-50",
-    "evaluated_at_utc": "2026-10-17T13:08:09.340840Z",
+    "evaluated_at_utc": "2026-10-17T14:38:48.106595Z",
     "folds": [
       4
     ],
-    "sample_count": 64,
+    "sample_count": 88,
     "split": "validation"
   },
   "important_sound_classes": {
     "door_wood_knock": {
-      "f1": 0.9333333333333333,
-      "precision": 1.0,
-      "recall": 0.875,
-      "support": 8
-    },
-    "glass_breaking": {
-      "f1": 0.7368421052631579,
-      "precision": 0.6363636363636364,
-      "recall": 0.875,
-      "support": 8
-    },
-    "siren": {
       "f1": 0.7777777777777778,
       "precision": 0.7,
       "recall": 0.875,
       "support": 8
+    },
+    "glass_breaking": {
+      "f1": 0.8235294117647058,
+      "precision": 0.7777777777777778,
+      "recall": 0.875,
+      "support": 8
+    },
+    "siren": {
+      "f1": 0.625,
+      "precision": 0.625,
+      "recall": 0.625,
+      "support": 8
     }
   },
-  "model_version": "hearhere-rf-v1",
+  "model_version": "hearhere-rf-v2",
   "per_class": {
-    "door_wood_knock": {
+    "car_horn": {
+      "f1": 0.26666666666666666,
+      "precision": 0.2857142857142857,
+      "recall": 0.25,
+      "support": 8
+    },
+    "clock_alarm": {
       "f1": 0.9333333333333333,
       "precision": 1.0,
+      "recall": 0.875,
+      "support": 8
+    },
+    "crying_baby": {
+      "f1": 0.7777777777777778,
+      "precision": 0.7,
+      "recall": 0.875,
+      "support": 8
+    },
+    "door_wood_knock": {
+      "f1": 0.7777777777777778,
+      "precision": 0.7,
       "recall": 0.875,
       "support": 8
     },
     "engine": {
-      "f1": 0.6153846153846154,
-      "precision": 0.8,
-      "recall": 0.5,
+      "f1": 0.4,
+      "precision": 1.0,
+      "recall": 0.25,
       "support": 8
     },
     "glass_breaking": {
-      "f1": 0.7368421052631579,
-      "precision": 0.6363636363636364,
+      "f1": 0.8235294117647058,
+      "precision": 0.7777777777777778,
       "recall": 0.875,
       "support": 8
     },
     "keyboard_typing": {
-      "f1": 0.8,
-      "precision": 0.8571428571428571,
-      "recall": 0.75,
-      "support": 8
-    },
-    "rain": {
-      "f1": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "support": 8
-    },
-    "siren": {
       "f1": 0.7777777777777778,
       "precision": 0.7,
       "recall": 0.875,
       "support": 8
     },
+    "rain": {
+      "f1": 0.9411764705882353,
+      "precision": 0.8888888888888888,
+      "recall": 1.0,
+      "support": 8
+    },
+    "siren": {
+      "f1": 0.625,
+      "precision": 0.625,
+      "recall": 0.625,
+      "support": 8
+    },
     "vacuum_cleaner": {
-      "f1": 0.8421052631578947,
-      "precision": 0.7272727272727273,
+      "f1": 0.8888888888888888,
+      "precision": 0.8,
       "recall": 1.0,
       "support": 8
     },
     "wind": {
-      "f1": 0.7692307692307693,
+      "f1": 0.8571428571428571,
       "precision": 1.0,
-      "recall": 0.625,
+      "recall": 0.75,
       "support": 8
     }
   },
   "schema_version": "1.0",
   "summary": {
-    "accuracy": 0.8125,
-    "macro_f1": 0.8093342330184435,
-    "macro_precision": 0.8400974025974026,
-    "macro_recall": 0.8125,
-    "weighted_f1": 0.8093342330184435,
-    "weighted_precision": 0.8400974025974026,
-    "weighted_recall": 0.8125
+    "accuracy": 0.75,
+    "macro_f1": 0.7335519056107291,
+    "macro_precision": 0.7706709956709955,
+    "macro_recall": 0.75,
+    "weighted_f1": 0.7335519056107291,
+    "weighted_precision": 0.7706709956709955,
+    "weighted_recall": 0.75
   },
   "threshold_note": "Per-class thresholds selected on Fold 4 to minimize false alerts while retaining at least 75% recall for each important class.",
   "thresholds": {
-    "door_wood_knock": 0.5966666666666667,
-    "glass_breaking": 0.5166666666666667,
-    "siren": 0.30333333333333334
+    "door_wood_knock": 0.5833333333333334,
+    "glass_breaking": 0.44,
+    "siren": 0.22
   }
 }

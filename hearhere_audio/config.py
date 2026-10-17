@@ -11,6 +11,9 @@ N_MELS = 128
 RESAMPLE_TYPE = "soxr_hq"
 
 CLASSES = (
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
     "door_wood_knock",
     "engine",
     "glass_breaking",
@@ -20,6 +23,8 @@ CLASSES = (
     "vacuum_cleaner",
     "wind",
 )
+# v2 expands the classifier vocabulary while keeping the original alert policy.
+MODEL_VERSION = "hearhere-rf-v2"
 ALERT_CLASSES = ("door_wood_knock", "siren", "glass_breaking")
 
 FEATURE_ORDER = tuple(
