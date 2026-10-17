@@ -1,5 +1,6 @@
 """Canonical WAV preprocessing and 40-dimensional MFCC extraction."""
 
+from io import BytesIO
 from pathlib import Path
 
 import librosa
@@ -105,5 +106,22 @@ def extract_features_from_file(audio_path: str | Path) -> np.ndarray:
         )
     except Exception as exc:
         raise AudioProcessingError(f"Could not decode audio file: {audio_path}") from exc
+
+    return extract_features(samples, source_sample_rate)
+
+
+def extract_features_from_bytes(audio_bytes: bytes) -> np.ndarray:
+    """Decode WAV bytes and extract features using the shared pipeline."""
+    if not isinstance(audio_bytes, bytes) or not audio_bytes:
+        raise AudioProcessingError("Audio bytes must be a non-empty bytes value")
+    try:
+        samples, source_sample_rate = librosa.load(
+            BytesIO(audio_bytes),
+            sr=None,
+            mono=True,
+            dtype=np.float32,
+        )
+    except Exception as exc:
+        raise AudioProcessingError("Could not decode uploaded audio bytes") from exc
 
     return extract_features(samples, source_sample_rate)

@@ -5,6 +5,7 @@ from hearhere_audio.config import FEATURE_ORDER, SAMPLE_RATE, WINDOW_SAMPLES
 from hearhere_audio.features import (
     AudioProcessingError,
     extract_features,
+    extract_features_from_bytes,
     extract_features_from_file,
     prepare_audio,
 )
@@ -76,6 +77,19 @@ def test_file_entrypoint_reads_wav_and_resamples(tmp_path):
 
     assert features.shape == (40,)
     assert np.isfinite(features).all()
+
+
+def test_bytes_entrypoint_matches_file_features(tmp_path):
+    import soundfile as sf
+
+    samples = np.sin(2 * np.pi * 440 * np.arange(SAMPLE_RATE) / SAMPLE_RATE)
+    audio_path = tmp_path / "sample.wav"
+    sf.write(audio_path, samples.astype(np.float32), SAMPLE_RATE)
+
+    from_file = extract_features_from_file(audio_path)
+    from_bytes = extract_features_from_bytes(audio_path.read_bytes())
+
+    np.testing.assert_array_equal(from_bytes, from_file)
 
 
 def test_file_entrypoint_reports_decode_errors(tmp_path):

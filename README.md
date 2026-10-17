@@ -7,6 +7,7 @@ HearHere is a sound-awareness prototype that classifies selected environmental s
 - Shared WAV preprocessing and 40-dimensional MFCC extraction are implemented in `hearhere_audio/`.
 - The Random Forest training and Fold 4 validation flow is implemented in `scripts/train.py`.
 - Per-class Fold 4 alert thresholds are recorded in `models/thresholds.json`, using a 75% minimum recall constraint to reduce false alerts.
+- `POST /classify` loads the validated model, returns all eight class scores, and applies B's per-sound alert policy.
 - Fold 5 remains reserved for final evaluation after the model and alert rules are fixed.
 - Do not treat files ending in `.template.json` as trained-model metadata or measured results.
 
@@ -25,6 +26,12 @@ Train the baseline and create the model plus Fold 4 validation artifacts:
 
 ```sh
 python -m scripts.train --dataset data/raw/ESC-50
+```
+
+Run the API locally after installing runtime and development requirements:
+
+```sh
+uvicorn backends.main:app --reload
 ```
 
 ## Dataset and evaluation plan
