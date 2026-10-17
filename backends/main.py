@@ -19,6 +19,7 @@ PREFS = {
     "glass_breaking":  {"enabled": True, "threshold": 0.60, "cooldown": 30, "priority": "high",   "message": "Glass may have broken"},
     "door_wood_knock": {"enabled": True, "threshold": 0.70, "cooldown": 15, "priority": "normal", "message": "Someone may be at the door"},
 }
+
 last_alert: dict[str, float] = {}
 snoozed_until: dict[str, float] = {}
 
