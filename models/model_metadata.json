@@ -1,4 +1,9 @@
 {
+  "alert_policy": {
+    "minimum_recall": 0.75,
+    "selection_method": "Highest observed Fold 4 score meeting the minimum recall for each alert class",
+    "selection_objective": "Minimize false alerts subject to the per-class recall constraint"
+  },
   "artifact_status": "trained_fold4_validated",
   "class_order": [
     "door_wood_knock",
@@ -10,7 +15,7 @@
     "vacuum_cleaner",
     "wind"
   ],
-  "created_at_utc": "2026-10-17T12:43:25.855875Z",
+  "created_at_utc": "2026-10-17T13:08:09.340840Z",
   "dataset": {
     "class_counts": {
       "train": {

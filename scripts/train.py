@@ -48,6 +48,7 @@ TRAIN_FOLDS = (1, 2, 3)
 VALIDATION_FOLD = 4
 RANDOM_SEED = 42
 N_ESTIMATORS = 300
+MINIMUM_ALERT_RECALL = 0.75
 
 
 def read_rows(dataset_root: Path) -> list[dict[str, str]]:
@@ -168,6 +169,69 @@ def build_validation_metrics(
     return metrics, matrix
 
 
+def select_alert_thresholds(
+    true_labels: np.ndarray,
+    scores: np.ndarray,
+    model_classes: np.ndarray,
+    minimum_recall: float = MINIMUM_ALERT_RECALL,
+) -> dict[str, dict[str, float | int]]:
+    """Choose per-alert-class thresholds using Fold 4 scores only.
+
+    The highest observed score that still meets the recall constraint minimizes
+    binary alert positives, and therefore false alerts, for that class.
+    """
+    if not 0 < minimum_recall <= 1:
+        raise ValueError("minimum_recall must be greater than 0 and at most 1")
+    if scores.shape != (len(true_labels), len(model_classes)):
+        raise ValueError("scores must have one column per model class")
+
+    class_indices = {label: index for index, label in enumerate(model_classes.tolist())}
+    selected: dict[str, dict[str, float | int]] = {}
+    for label in ALERT_CLASSES:
+        if label not in class_indices:
+            raise ValueError(f"Alert class is missing from model classes: {label}")
+        class_scores = scores[:, class_indices[label]]
+        is_positive = true_labels == label
+        support = int(is_positive.sum())
+        if support == 0:
+            raise ValueError(f"No validation examples for alert class: {label}")
+
+        # Thresholds only need to be checked at observed scores because the
+        # predicted alert set is unchanged between adjacent score values.
+        for threshold in sorted(np.unique(class_scores).tolist(), reverse=True):
+            is_alert = class_scores >= threshold
+            true_positive = int(np.logical_and(is_alert, is_positive).sum())
+            false_positive = int(np.logical_and(is_alert, ~is_positive).sum())
+            false_negative = support - true_positive
+            recall = true_positive / support
+            if recall < minimum_recall:
+                continue
+            alert_count = true_positive + false_positive
+            precision = true_positive / alert_count if alert_count else 0.0
+            f1 = (
+                2 * precision * recall / (precision + recall)
+                if precision + recall
+                else 0.0
+            )
+            selected[label] = {
+                "threshold": float(threshold),
+                "precision": float(precision),
+                "recall": float(recall),
+                "f1": float(f1),
+                "support": support,
+                "alert_count": alert_count,
+                "true_positive_count": true_positive,
+                "false_positive_count": false_positive,
+                "false_negative_count": false_negative,
+            }
+            break
+        else:
+            raise ValueError(
+                f"No threshold for {label} meets minimum recall {minimum_recall}"
+            )
+    return selected
+
+
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -235,6 +299,15 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     predicted = model.predict(x_validation)
     probabilities = model.predict_proba(x_validation)
     metrics, matrix = build_validation_metrics(y_validation.tolist(), predicted.tolist())
+    threshold_metrics = select_alert_thresholds(
+        y_validation,
+        probabilities,
+        model.classes_,
+    )
+    threshold_values = {
+        label: threshold_metrics[label]["threshold"]
+        for label in ALERT_CLASSES
+    }
 
     model_dir.mkdir(parents=True, exist_ok=True)
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -320,10 +393,33 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
             "thresholds": "models/thresholds.json",
             "final_test_metrics": "reports/test_metrics.json",
         },
+        "alert_policy": {
+            "minimum_recall": MINIMUM_ALERT_RECALL,
+            "selection_objective": "Minimize false alerts subject to the per-class recall constraint",
+            "selection_method": "Highest observed Fold 4 score meeting the minimum recall for each alert class",
+        },
+    }
+    threshold_report = {
+        "schema_version": "1.0",
+        "artifact_status": "fold4_thresholds_selected",
+        "model_version": metadata["model_version"],
+        "selection_split": {
+            "dataset": "ESC-50",
+            "folds": [VALIDATION_FOLD],
+        },
+        "score_interpretation": "Uncalibrated Random Forest class score; not a real-world event probability",
+        "policy_owner": "backend",
+        "minimum_recall": MINIMUM_ALERT_RECALL,
+        "selection_objective": "Minimize false alerts subject to at least 75% recall for each important class",
+        "selection_method": "For each important class, evaluate unique Fold 4 scores in descending order and select the highest score whose binary recall meets the minimum recall constraint",
+        "recommended_alert_classes": list(ALERT_CLASSES),
+        "minimum_scores": threshold_values,
+        "validation_metrics": threshold_metrics,
+        "notes": "Selected on Fold 4 only. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Fold 5 remains reserved for final evaluation.",
     }
     validation_report = {
         "schema_version": "1.0",
-        "artifact_status": "fold4_measured_threshold_pending",
+        "artifact_status": "fold4_measured_thresholds_selected",
         "model_version": metadata["model_version"],
         "evaluation": {
             "dataset": "ESC-50",
@@ -349,11 +445,12 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
         "important_sound_classes": metrics["important_sound_classes"],
         "confusion_matrix": matrix.tolist(),
         "confusion_matrix_axis_order": "rows=true_class,columns=predicted_class; both follow class_order",
-        "thresholds": None,
-        "threshold_note": "No alert threshold was selected; agree the policy objective with B first.",
+        "thresholds": threshold_values,
+        "threshold_note": "Per-class thresholds selected on Fold 4 to minimize false alerts while retaining at least 75% recall for each important class.",
     }
 
     write_json(model_dir / "model_metadata.json", metadata)
+    write_json(model_dir / "thresholds.json", threshold_report)
     write_json(report_dir / "validation_metrics.json", validation_report)
     write_confusion_matrix(report_dir / "confusion_matrix.csv", matrix)
     with (report_dir / "fold4_predictions.csv").open("w", newline="", encoding="utf-8") as output:
@@ -368,8 +465,10 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
 
     print(f"Saved model: {model_path}")
     print(f"Saved metadata: {model_dir / 'model_metadata.json'}")
+    print(f"Saved threshold recommendations: {model_dir / 'thresholds.json'}")
     print(f"Saved validation report: {report_dir / 'validation_metrics.json'}")
     print(f"Saved used-data manifest: {manifest_path}")
+    print(json.dumps(threshold_report, indent=2))
     print(json.dumps(metrics, indent=2))
 
 

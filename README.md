@@ -6,6 +6,7 @@ HearHere is a sound-awareness prototype that classifies selected environmental s
 
 - Shared WAV preprocessing and 40-dimensional MFCC extraction are implemented in `hearhere_audio/`.
 - The Random Forest training and Fold 4 validation flow is implemented in `scripts/train.py`.
+- Per-class Fold 4 alert thresholds are recorded in `models/thresholds.json`, using a 75% minimum recall constraint to reduce false alerts.
 - Fold 5 remains reserved for final evaluation after the model and alert rules are fixed.
 - Do not treat files ending in `.template.json` as trained-model metadata or measured results.
 

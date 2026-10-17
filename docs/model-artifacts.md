@@ -35,7 +35,7 @@ Use official ESC-50 folds: 1-3 for training, 4 for validation and threshold sele
 
 The validation report records per-class precision, recall, F1, and support, plus accuracy, macro and weighted precision/recall/F1, and a confusion matrix whose rows are true labels and columns are predicted labels in its declared `class_order`. Report the three important sounds separately: `door_wood_knock`, `siren`, and `glass_breaking`.
 
-Thresholds are recommendations for B's alert policy. They must be chosen using Fold 4 and an agreed selection objective. Random Forest scores are not calibrated real-world event probabilities. Ordinary sounds should not produce important-sound alert recommendations. The classifier does not own event IDs, cooldowns, user preferences, or acknowledgement state.
+Thresholds are recommendations for B's alert policy. The agreed Fold 4 objective is to minimize false alerts subject to at least 75% recall for each important class. For each class, select the highest observed class score that meets that recall constraint, and record the resulting precision, recall, F1, support, alert count, and false-positive count in `models/thresholds.json`. Random Forest scores are not calibrated real-world event probabilities. Ordinary sounds should not produce important-sound alert recommendations. The classifier does not own event IDs, cooldowns, user preferences, or acknowledgement state.
 
 Do not populate metric or threshold values until they have been measured. Do not use Fold 5 to choose features, model parameters, or thresholds. If a change is made after examining Fold 5 results, those results are no longer an independent final evaluation.
 

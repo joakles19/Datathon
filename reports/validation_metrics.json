@@ -1,5 +1,5 @@
 {
-  "artifact_status": "fold4_measured_threshold_pending",
+  "artifact_status": "fold4_measured_thresholds_selected",
   "class_order": [
     "door_wood_knock",
     "engine",
@@ -95,7 +95,7 @@
   "confusion_matrix_axis_order": "rows=true_class,columns=predicted_class; both follow class_order",
   "evaluation": {
     "dataset": "ESC-50",
-    "evaluated_at_utc": "2026-10-17T12:43:25.855875Z",
+    "evaluated_at_utc": "2026-10-17T13:08:09.340840Z",
     "folds": [
       4
     ],
@@ -183,6 +183,10 @@
     "weighted_precision": 0.8400974025974026,
     "weighted_recall": 0.8125
   },
-  "threshold_note": "No alert threshold was selected; agree the policy objective with B first.",
-  "thresholds": null
+  "threshold_note": "Per-class thresholds selected on Fold 4 to minimize false alerts while retaining at least 75% recall for each important class.",
+  "thresholds": {
+    "door_wood_knock": 0.5966666666666667,
+    "glass_breaking": 0.5166666666666667,
+    "siren": 0.30333333333333334
+  }
 }
