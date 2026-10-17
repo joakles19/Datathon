@@ -2,6 +2,8 @@
  * BACKEND CONTRACT — adjust analyzeAudio() / isAlert() if your API differs.
  *
  *   POST {api}/analyze   multipart/form-data, file field "audio"
+ *                        the file is always 16-bit PCM WAV (see WAV_OPTIONS below),
+ *                        converted in the browser from whatever was recorded/uploaded
  *   -> 200 JSON {
  *        "break_in": true,             // overall verdict (optional)
  *        "label": "glass_breaking",    // top class
@@ -11,7 +13,12 @@
  *   GET  {api}/health    -> 200 when the service is up (optional)
  */
 
+import { toWav } from './wav.js';
+
 export const DEFAULT_API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+// Format sent to the backend. Change these to match what the model expects.
+export const WAV_OPTIONS = { sampleRate: 16000, channels: 1 };
 
 const BREAK_IN_LABELS = /break|glass|forced|smash|tamper|kick|crowbar/i;
 
@@ -22,8 +29,14 @@ export function isAlert(result, thresholdPct) {
 
 export async function analyzeAudio(blob, filename, { api, demo }) {
   if (demo) return demoAnalyze();
+  let wav;
+  try {
+    wav = await toWav(blob, WAV_OPTIONS);
+  } catch (err) {
+    throw new Error(`WAV conversion failed (${err.message})`);
+  }
   const body = new FormData();
-  body.append('audio', blob, filename);
+  body.append('audio', wav, filename.replace(/\.[^./\\]+$/, '') + '.wav');
   const res = await fetch(`${api.replace(/\/+$/, '')}/analyze`, { method: 'POST', body });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   const data = await res.json();
