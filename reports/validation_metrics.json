@@ -7,7 +7,6 @@
     "door_wood_knock",
     "engine",
     "glass_breaking",
-    "keyboard_typing",
     "rain",
     "siren",
     "vacuum_cleaner",
@@ -15,13 +14,12 @@
   ],
   "confusion_matrix": [
     [
-      2,
+      3,
       0,
       1,
       3,
       0,
       0,
-      1,
       0,
       1,
       0,
@@ -34,7 +32,6 @@
       0,
       0,
       0,
-      0,
       1,
       0,
       0,
@@ -48,7 +45,6 @@
       0,
       0,
       0,
-      0,
       1,
       0,
       0
@@ -57,9 +53,8 @@
       0,
       0,
       0,
-      7,
+      8,
       0,
-      1,
       0,
       0,
       0,
@@ -67,16 +62,15 @@
       0
     ],
     [
+      3,
+      1,
+      0,
+      0,
       2,
       0,
       0,
       0,
       2,
-      1,
-      1,
-      0,
-      0,
-      2,
       0
     ],
     [
@@ -85,28 +79,13 @@
       0,
       0,
       0,
-      7,
-      1,
+      8,
       0,
       0,
       0,
       0
     ],
     [
-      0,
-      0,
-      1,
-      0,
-      0,
-      0,
-      7,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
       0,
       0,
       0,
@@ -122,7 +101,6 @@
       2,
       0,
       1,
-      0,
       0,
       0,
       0,
@@ -132,6 +110,7 @@
       0
     ],
     [
+      1,
       0,
       0,
       0,
@@ -139,9 +118,7 @@
       0,
       0,
       0,
-      0,
-      0,
-      8,
+      7,
       0
     ],
     [
@@ -153,37 +130,36 @@
       0,
       0,
       0,
-      1,
       0,
-      6
+      7
     ]
   ],
   "confusion_matrix_axis_order": "rows=true_class,columns=predicted_class; both follow class_order",
   "evaluation": {
     "dataset": "ESC-50",
-    "evaluated_at_utc": "2026-10-17T14:38:48.106595Z",
+    "evaluated_at_utc": "2026-10-17T15:31:16.277893Z",
     "folds": [
       4
     ],
-    "sample_count": 88,
+    "sample_count": 80,
     "split": "validation"
   },
   "important_sound_classes": {
     "door_wood_knock": {
-      "f1": 0.7777777777777778,
-      "precision": 0.7,
-      "recall": 0.875,
+      "f1": 0.8421052631578947,
+      "precision": 0.7272727272727273,
+      "recall": 1.0,
       "support": 8
     },
     "glass_breaking": {
-      "f1": 0.8235294117647058,
-      "precision": 0.7777777777777778,
-      "recall": 0.875,
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
       "support": 8
     },
     "siren": {
-      "f1": 0.625,
-      "precision": 0.625,
+      "f1": 0.6666666666666666,
+      "precision": 0.7142857142857143,
       "recall": 0.625,
       "support": 8
     }
@@ -191,27 +167,27 @@
   "model_version": "hearhere-rf-v2",
   "per_class": {
     "car_horn": {
-      "f1": 0.26666666666666666,
-      "precision": 0.2857142857142857,
-      "recall": 0.25,
+      "f1": 0.3333333333333333,
+      "precision": 0.3,
+      "recall": 0.375,
       "support": 8
     },
     "clock_alarm": {
-      "f1": 0.9333333333333333,
-      "precision": 1.0,
+      "f1": 0.875,
+      "precision": 0.875,
       "recall": 0.875,
       "support": 8
     },
     "crying_baby": {
-      "f1": 0.7777777777777778,
-      "precision": 0.7,
+      "f1": 0.8235294117647058,
+      "precision": 0.7777777777777778,
       "recall": 0.875,
       "support": 8
     },
     "door_wood_knock": {
-      "f1": 0.7777777777777778,
-      "precision": 0.7,
-      "recall": 0.875,
+      "f1": 0.8421052631578947,
+      "precision": 0.7272727272727273,
+      "recall": 1.0,
       "support": 8
     },
     "engine": {
@@ -221,15 +197,9 @@
       "support": 8
     },
     "glass_breaking": {
-      "f1": 0.8235294117647058,
-      "precision": 0.7777777777777778,
-      "recall": 0.875,
-      "support": 8
-    },
-    "keyboard_typing": {
-      "f1": 0.7777777777777778,
-      "precision": 0.7,
-      "recall": 0.875,
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
       "support": 8
     },
     "rain": {
@@ -239,38 +209,38 @@
       "support": 8
     },
     "siren": {
-      "f1": 0.625,
-      "precision": 0.625,
+      "f1": 0.6666666666666666,
+      "precision": 0.7142857142857143,
       "recall": 0.625,
       "support": 8
     },
     "vacuum_cleaner": {
-      "f1": 0.8888888888888888,
-      "precision": 0.8,
-      "recall": 1.0,
+      "f1": 0.8235294117647058,
+      "precision": 0.7777777777777778,
+      "recall": 0.875,
       "support": 8
     },
     "wind": {
-      "f1": 0.8571428571428571,
+      "f1": 0.9333333333333333,
       "precision": 1.0,
-      "recall": 0.75,
+      "recall": 0.875,
       "support": 8
     }
   },
   "schema_version": "1.0",
   "summary": {
-    "accuracy": 0.75,
-    "macro_f1": 0.7335519056107291,
-    "macro_precision": 0.7706709956709955,
-    "macro_recall": 0.75,
-    "weighted_f1": 0.7335519056107291,
-    "weighted_precision": 0.7706709956709955,
-    "weighted_recall": 0.75
+    "accuracy": 0.775,
+    "macro_f1": 0.7638673890608876,
+    "macro_precision": 0.8061002886002886,
+    "macro_recall": 0.775,
+    "weighted_f1": 0.7638673890608876,
+    "weighted_precision": 0.8061002886002886,
+    "weighted_recall": 0.775
   },
   "threshold_note": "Per-class thresholds selected on Fold 4 to minimize false alerts while retaining at least 75% recall for each important class.",
   "thresholds": {
-    "door_wood_knock": 0.5833333333333334,
-    "glass_breaking": 0.44,
-    "siren": 0.22
+    "door_wood_knock": 0.6866666666666666,
+    "glass_breaking": 0.5166666666666667,
+    "siren": 0.25333333333333335
   }
 }

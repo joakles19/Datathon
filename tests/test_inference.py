@@ -26,6 +26,8 @@ def test_classifier_returns_all_class_scores_and_model_version():
     prediction = classifier.predict_bytes(wav_bytes())
 
     assert set(prediction["scores"]) == set(classifier.model.classes_)
+    assert "keyboard_typing" not in prediction["scores"]
+    assert len(prediction["scores"]) == 10
     assert prediction["label"] == max(prediction["scores"], key=prediction["scores"].get)
     assert prediction["score"] == prediction["scores"][prediction["label"]]
     assert prediction["model_version"] == "hearhere-rf-v2"

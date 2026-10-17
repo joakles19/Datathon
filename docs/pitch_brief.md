@@ -29,7 +29,7 @@ Core experience:
 1. Capture a short audio clip.
 2. Standardise the clip to mono, 16 kHz, and a five-second analysis window.
 3. Extract 40 MFCC features: 20 coefficient means plus 20 population standard deviations.
-4. Classify the clip with a Random Forest model across eight sound classes.
+4. Classify the clip with a Random Forest model across ten sound classes.
 5. Apply per-sound preferences, confidence thresholds, priorities, cooldowns, snooze, and acknowledgement state.
 6. Store an event history so the user can review what was detected.
 
@@ -41,10 +41,10 @@ The three alert-oriented classes are `door_wood_knock`, `siren`, and `glass_brea
 
 - Reproducible audio preprocessing and feature extraction in `hearhere_audio/`.
 - Random Forest baseline with 300 trees and fixed random seed 42.
-- ESC-50 selected classes: door knock, engine, glass breaking, keyboard typing, rain, siren, vacuum cleaner, and wind.
+- ESC-50 selected classes: door knock, engine, glass breaking, rain, siren, vacuum cleaner, wind, car horn, clock alarm, and crying baby.
 - Official fold split: folds 1-3 for training, fold 4 for validation, fold 5 reserved for final evaluation.
-- Training data: 192 clips.
-- Validation data: 64 clips.
+- Training data: 240 clips.
+- Validation data: 80 clips.
 - Model artifact: `models/hearhere_rf.joblib`.
 - Measured report: `reports/validation_metrics.json`.
 
@@ -66,19 +66,19 @@ The following results are measured on ESC-50 Fold 4 only. They are a technical b
 
 | Metric | Result |
 |---|---:|
-| Validation accuracy | 81.25% |
-| Macro F1 | 80.93% |
-| Weighted F1 | 80.93% |
-| Validation samples | 64 |
-| Sound classes | 8 |
+| Validation accuracy | 77.50% |
+| Macro F1 | 76.39% |
+| Weighted F1 | 76.39% |
+| Validation samples | 80 |
+| Sound classes | 10 |
 
 ### Important sound performance
 
 | Sound | Precision | Recall | F1 | Interpretation |
 |---|---:|---:|---:|---|
-| Door knock | 100.0% | 87.5% | 93.3% | Strongest alert-oriented result in this run |
-| Glass breaking | 63.6% | 87.5% | 73.7% | Good catch rate, but false positives need attention |
-| Siren | 70.0% | 87.5% | 77.8% | Good catch rate, with room to improve precision |
+| Door knock | 72.7% | 100.0% | 84.2% | Highest catch rate among the alert-oriented classes in this run |
+| Glass breaking | 100.0% | 100.0% | 100.0% | Strongest measured alert-oriented result in this run |
+| Siren | 71.4% | 62.5% | 66.7% | The weakest alert-oriented result in this run |
 
 ### What the confusion matrix suggests
 
@@ -112,11 +112,11 @@ Show the technical pipeline: five-second audio window -> 40 MFCC features -> Ran
 
 ### Slide 5 - What the prototype recognises
 
-Display the eight classes as a balanced sound map. Visually distinguish the three alert-oriented classes from ordinary/context classes.
+Display the ten classes as a balanced sound map. Visually distinguish the three alert-oriented classes from ordinary/context classes.
 
 ### Slide 6 - Baseline evidence
 
-Lead with 81.25% validation accuracy and 80.93% macro F1. Add a compact bar chart for precision, recall, and F1 of door knock, glass breaking, and siren.
+Lead with 77.50% validation accuracy and 76.39% macro F1. Add a compact bar chart for precision, recall, and F1 of door knock, glass breaking, and siren.
 
 ### Slide 7 - Why policy matters
 
@@ -152,7 +152,7 @@ For a live demo, label any simulated result clearly and do not imply that the cu
 ## Claims the deck may make
 
 - HearHere is a working assistive prototype with a reproducible audio classification baseline.
-- The current model reaches 81.25% accuracy and 80.93% macro F1 on the measured ESC-50 Fold 4 validation split.
+- The current model reaches 77.50% accuracy and 76.39% macro F1 on the measured ESC-50 Fold 4 validation split.
 - The product combines sound recognition with a user-facing alert policy, rather than exposing raw classifier scores alone.
 - The design prioritises user control through thresholds, cooldowns, snooze, acknowledgement, and history.
 

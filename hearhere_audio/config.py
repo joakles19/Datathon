@@ -17,7 +17,6 @@ CLASSES = (
     "door_wood_knock",
     "engine",
     "glass_breaking",
-    "keyboard_typing",
     "rain",
     "siren",
     "vacuum_cleaner",
