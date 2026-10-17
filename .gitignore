@@ -48,4 +48,7 @@ htmlcov/
 data/raw/ESC-50/
 data/processed/
 
-tests
+
+# A2 local inputs
+.test_tmp/
+recordings/

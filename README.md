@@ -1,43 +1,52 @@
-# HearHere
+# HearHere — A2 inference and API tools
 
-HearHere is a sound-awareness prototype that classifies selected environmental sounds and presents visual prompts. It is an assistive prototype, not a validated emergency-warning device.
+This branch adds ZiYi's A2 predictor, JSON CLI, input validation, backend adapter and `/classify` API client on top of the `ai_david` model workflow. The trained model, preprocessing and Fold 4 thresholds are inherited from A1. A2 does not retrain the model or choose thresholds.
 
-## Current status
+## Clone and run a real prediction
 
-- Shared WAV preprocessing and 40-dimensional MFCC extraction are implemented in `hearhere_audio/`.
-- The Random Forest training and Fold 4 validation flow is implemented in `scripts/train.py`.
-- Per-class Fold 4 alert thresholds are recorded in `models/thresholds.json`, using a 75% minimum recall constraint to reduce false alerts.
-- `POST /classify` loads the validated model, returns all eight class scores, and applies B's per-sound alert policy.
-- Fold 5 remains reserved for final evaluation after the model and alert rules are fixed.
-- Do not treat files ending in `.template.json` as trained-model metadata or measured results.
+Python **3.12** is required for the documented model environment. On Windows, with Python 3.12 installed:
 
-## Audio feature contract
-
-The shared feature function converts audio to mono at 16 kHz, pads clips shorter than five seconds, and rejects clips longer than five seconds. It extracts 20 MFCCs using a 2,048-sample FFT and a 512-sample hop, then returns the 20 coefficient means followed by their 20 population standard deviations.
-
-Run the current feature tests from the repository root:
-
-```sh
-python -m pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest
+```powershell
+git clone --branch ai_ZiYi --single-branch https://github.com/joakles19/Datathon.git
+cd Datathon
+py -3.12 scripts/setup_environment.py
+.\.venv\Scripts\python.exe -m hearhere_audio examples/1-31482-A-42.wav --pretty
 ```
 
-Train the baseline and create the model plus Fold 4 validation artifacts:
+If `py -3.12` is unavailable, run `scripts/setup_environment.py` using the full path to your Python 3.12 interpreter. On macOS/Linux, use `python3.12 scripts/setup_environment.py`, then `.venv/bin/python` for subsequent commands.
 
-```sh
-python -m scripts.train --dataset data/raw/ESC-50
+The model and an attributed test WAV are included. No full dataset download is needed for this smoke test. The supplied example returns `siren` with uncalibrated score `0.8566666666666667`. It is a fold-1 integration example, not an accuracy benchmark. See [sample attribution](examples/README.md).
+
+## Test the shared API
+
+Obtain the running backend's reachable base URL from B/D, then:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/classify_api.py examples/1-31482-A-42.wav --base-url http://127.0.0.1:8000 --pretty
 ```
 
-Run the API locally after installing runtime and development requirements:
+The address above works only when a backend is running on your own computer. A1's `127.0.0.1` address is not reachable from another teammate's machine. This branch contains A2 tools and A1 model artifacts; the current A1 baseline does not include `backends/main.py`. B/D supplies the server or shared deployment.
 
-```sh
-uvicorn backends.main:app --reload
+Upload field: `file`. Preserve `predicted_label` (model top class), `label` (backend-selected candidate), `confidence = scores[label]`, all eight scores and the server's `action`. B owns thresholds, cooldown, snooze, acknowledgement and event handling. Scores are not calibrated real-world probabilities.
+
+## Run A2's 31 tests
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_predict.py -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_api_client.py -v
 ```
 
-## Dataset and evaluation plan
+These are the 20 predictor/integration tests and 11 API-client tests. A1's other test modules are preserved; backend tests require B's backend source and the development dependencies. A2's tests do not use Fold 5 or establish real-world detection accuracy.
 
-The selected ESC-50 classes are `door_wood_knock`, `siren`, `glass_breaking`, `rain`, `wind`, `keyboard_typing`, `vacuum_cleaner`, and `engine`. The intended split is official folds 1-3 for training, fold 4 for validation and threshold selection, and fold 5 for final evaluation after the model and rules are fixed. Dataset files are local inputs and are not included in Git.
+## Handoff documents
 
-## Model artifacts
+- [A2 predictor usage](docs/A2_README.md)
+- [Current API contract](docs/classify_api.md)
+- [Ownership and integration handoff](docs/A2_handoff.md)
+- [LinuxONE loading guide](docs/linuxone.md)
+- [A1 parity confirmation](docs/A1_parity_confirmation.json)
+- [Local HTTP integration evidence](docs/classify_integration_verification.json)
+- [A1 model artifact contract](docs/model-artifacts.md)
+- [A1 workflow README retained for reference](docs/A1_model_workflow.md)
 
-Artifact field meanings and the rules for recording measured results are documented in [`docs/model-artifacts.md`](docs/model-artifacts.md). Local environment versions are recorded separately in [`reports/environment.local.json`](reports/environment.local.json); that snapshot does not establish LinuxONE compatibility.
+Local virtual environments, credentials, downloaded datasets, recordings, runtime databases and logs are excluded from Git. LinuxONE execution and a shared reachable API remain deployment checks for D.
