@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "artifact_status": "template_pending_evaluation",
+  "model_version": null,
+  "evaluation": {
+    "dataset": "ESC-50",
+    "split": "validation",
+    "folds": [4],
+    "sample_count": null,
+    "evaluated_at_utc": null
+  },
+  "class_order": [
+    "door_wood_knock",
+    "siren",
+    "glass_breaking",
+    "rain",
+    "wind",
+    "keyboard_typing",
+    "vacuum_cleaner",
+    "engine"
+  ],
+  "summary": {
+    "accuracy": null,
+    "macro_precision": null,
+    "macro_recall": null,
+    "macro_f1": null,
+    "weighted_precision": null,
+    "weighted_recall": null,
+    "weighted_f1": null
+  },
+  "per_class": {
+    "door_wood_knock": {"precision": null, "recall": null, "f1": null, "support": null},
+    "siren": {"precision": null, "recall": null, "f1": null, "support": null},
+    "glass_breaking": {"precision": null, "recall": null, "f1": null, "support": null},
+    "rain": {"precision": null, "recall": null, "f1": null, "support": null},
+    "wind": {"precision": null, "recall": null, "f1": null, "support": null},
+    "keyboard_typing": {"precision": null, "recall": null, "f1": null, "support": null},
+    "vacuum_cleaner": {"precision": null, "recall": null, "f1": null, "support": null},
+    "engine": {"precision": null, "recall": null, "f1": null, "support": null}
+  },
+  "important_sound_classes": {
+    "door_wood_knock": {"precision": null, "recall": null, "f1": null, "support": null},
+    "siren": {"precision": null, "recall": null, "f1": null, "support": null},
+    "glass_breaking": {"precision": null, "recall": null, "f1": null, "support": null}
+  },
+  "confusion_matrix": null,
+  "confusion_matrix_axis_order": "rows=true_class,columns=predicted_class; both follow class_order",
+  "thresholds": null,
+  "threshold_note": "No alert threshold was selected in this run."
+}

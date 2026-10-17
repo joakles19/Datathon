@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "artifact_status": "template_pending_fold_4",
+  "model_version": null,
+  "selection_split": {
+    "dataset": "ESC-50",
+    "folds": [4]
+  },
+  "score_interpretation": "Uncalibrated Random Forest class score; not a real-world event probability",
+  "policy_owner": "backend",
+  "selection_objective": null,
+  "selection_method": null,
+  "recommended_alert_classes": [
+    "door_wood_knock",
+    "siren",
+    "glass_breaking"
+  ],
+  "minimum_scores": {
+    "door_wood_knock": null,
+    "siren": null,
+    "glass_breaking": null
+  },
+  "notes": "Agree the selection objective with B before selecting thresholds. Fold 5 must not be used for threshold selection."
+}
