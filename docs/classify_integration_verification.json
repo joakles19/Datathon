@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-17",
+  "scope": "Local copy of inspected ai_david source; not a request to A1's PC or a LinuxONE deployment",
+  "source_ref": "7044188652cdb20f160dd1e3b07dff83275f140e",
+  "client_unit_tests": "11 passed before this HTTP smoke test",
+  "malformed_upload_status": 422,
+  "first_response": {
+    "label": "siren",
+    "predicted_label": "siren",
+    "confidence": 0.8566666666666667,
+    "action": "alert",
+    "priority": "high",
+    "message": "Siren detected",
+    "event_id": 1,
+    "scores": {
+      "door_wood_knock": 0.016666666666666666,
+      "engine": 0.01,
+      "glass_breaking": 0.013333333333333334,
+      "keyboard_typing": 0.05333333333333334,
+      "rain": 0.0033333333333333335,
+      "siren": 0.8566666666666667,
+      "vacuum_cleaner": 0.01,
+      "wind": 0.03666666666666667
+    },
+    "model_version": "hearhere-rf-v1"
+  },
+  "repeated_action": "suppressed",
+  "cli_action": "suppressed",
+  "cli_timing": "Request round-trip: 145.0 ms (includes upload, server work and response; excludes capture)",
+  "passed": true
+}

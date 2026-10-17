@@ -1,0 +1,38 @@
+{
+  "model_version": null,
+  "test_fold": 5,
+  "sample_count": null,
+  "classes": [
+    "door_wood_knock",
+    "siren",
+    "glass_breaking",
+    "rain",
+    "wind",
+    "keyboard_typing",
+    "vacuum_cleaner",
+    "engine"
+  ],
+  "metrics": {
+    "accuracy": null,
+    "macro_f1": null,
+    "weighted_f1": null,
+    "per_class": {
+      "door_wood_knock": {"precision": null, "recall": null, "f1": null, "support": null},
+      "siren": {"precision": null, "recall": null, "f1": null, "support": null},
+      "glass_breaking": {"precision": null, "recall": null, "f1": null, "support": null},
+      "rain": {"precision": null, "recall": null, "f1": null, "support": null},
+      "wind": {"precision": null, "recall": null, "f1": null, "support": null},
+      "keyboard_typing": {"precision": null, "recall": null, "f1": null, "support": null},
+      "vacuum_cleaner": {"precision": null, "recall": null, "f1": null, "support": null},
+      "engine": {"precision": null, "recall": null, "f1": null, "support": null}
+    },
+    "important_sound_classes": {
+      "door_wood_knock": {"precision": null, "recall": null, "f1": null, "support": null},
+      "siren": {"precision": null, "recall": null, "f1": null, "support": null},
+      "glass_breaking": {"precision": null, "recall": null, "f1": null, "support": null}
+    }
+  },
+  "confusion_matrix_rows_true_columns_predicted": null,
+  "thresholds": null,
+  "threshold_note": "Fold 5 is final evaluation only; do not use these results to select thresholds or change the model."
+}

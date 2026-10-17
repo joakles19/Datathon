@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "artifact_status": "template_pending_training",
+  "model_version": null,
+  "model_type": "sklearn.ensemble.RandomForestClassifier",
+  "created_at_utc": null,
+  "model_sha256": null,
+  "class_order": [
+    "door_wood_knock",
+    "engine",
+    "glass_breaking",
+    "keyboard_typing",
+    "rain",
+    "siren",
+    "vacuum_cleaner",
+    "wind"
+  ],
+  "important_classes": [
+    "door_wood_knock",
+    "siren",
+    "glass_breaking"
+  ],
+  "feature_extractor": {
+    "entrypoint": "hearhere_audio.features.extract_features_from_file",
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "window_seconds": 5,
+    "short_audio_policy": "zero_pad",
+    "long_audio_policy": "reject",
+    "n_mfcc": 20,
+    "n_fft": 2048,
+    "hop_length": 512,
+    "n_mels": 128,
+    "resample_type": "soxr_hq",
+    "feature_count": 40,
+    "feature_order": "mfcc_0_mean..mfcc_19_mean,mfcc_0_std..mfcc_19_std",
+    "std_ddof": 0
+  },
+  "dataset": {
+    "name": "ESC-50",
+    "source_url": "https://github.com/karolpiczak/ESC-50",
+    "revision": null,
+    "license": "CC BY-NC 3.0",
+    "source_metadata_sha256": null,
+    "source_manifest_path": "reports/training_manifest.csv",
+    "class_counts": {
+      "train": {
+        "door_wood_knock": null,
+        "engine": null,
+        "glass_breaking": null,
+        "keyboard_typing": null,
+        "rain": null,
+        "siren": null,
+        "vacuum_cleaner": null,
+        "wind": null
+      },
+      "validation": {
+        "door_wood_knock": null,
+        "engine": null,
+        "glass_breaking": null,
+        "keyboard_typing": null,
+        "rain": null,
+        "siren": null,
+        "vacuum_cleaner": null,
+        "wind": null
+      }
+    },
+    "fold_counts": {"1": null, "2": null, "3": null, "4": null},
+    "sample_counts": {
+      "train": null,
+      "validation": null
+    },
+    "split": {
+      "train_folds": [1, 2, 3],
+      "validation_folds": [4],
+      "final_test_folds": [5]
+    }
+  },
+  "training": {
+    "random_seed": null,
+    "parameters": null
+  },
+  "dependency_versions": null,
+  "evaluation_artifacts": {
+    "validation_metrics": "reports/validation_metrics.json",
+    "thresholds": "models/thresholds.json",
+    "final_test_metrics": "reports/test_metrics.json"
+  }
+}

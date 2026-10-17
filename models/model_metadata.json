@@ -1,0 +1,135 @@
+{
+  "alert_policy": {
+    "minimum_recall": 0.75,
+    "selection_method": "Highest observed Fold 4 score meeting the minimum recall for each alert class",
+    "selection_objective": "Minimize false alerts subject to the per-class recall constraint"
+  },
+  "artifact_status": "trained_fold4_validated",
+  "class_order": [
+    "door_wood_knock",
+    "engine",
+    "glass_breaking",
+    "keyboard_typing",
+    "rain",
+    "siren",
+    "vacuum_cleaner",
+    "wind"
+  ],
+  "created_at_utc": "2026-10-17T13:08:09.340840Z",
+  "dataset": {
+    "class_counts": {
+      "train": {
+        "door_wood_knock": 24,
+        "engine": 24,
+        "glass_breaking": 24,
+        "keyboard_typing": 24,
+        "rain": 24,
+        "siren": 24,
+        "vacuum_cleaner": 24,
+        "wind": 24
+      },
+      "validation": {
+        "door_wood_knock": 8,
+        "engine": 8,
+        "glass_breaking": 8,
+        "keyboard_typing": 8,
+        "rain": 8,
+        "siren": 8,
+        "vacuum_cleaner": 8,
+        "wind": 8
+      }
+    },
+    "fold_counts": {
+      "1": 64,
+      "2": 64,
+      "3": 64,
+      "4": 64
+    },
+    "license": "CC BY-NC 3.0 (selected classes are outside the CC BY ESC-10 subset)",
+    "name": "ESC-50",
+    "revision": null,
+    "sample_counts": {
+      "train": 192,
+      "validation": 64
+    },
+    "source_manifest_path": "reports/training_manifest.csv",
+    "source_metadata_sha256": "ca660da60191a97de289983a05821c9382d852a38a2ba8428980816b68cf6246",
+    "source_url": "https://github.com/karolpiczak/ESC-50",
+    "split": {
+      "final_test_folds": [
+        5
+      ],
+      "train_folds": [
+        1,
+        2,
+        3
+      ],
+      "validation_folds": [
+        4
+      ]
+    }
+  },
+  "dependency_versions": {
+    "joblib": "1.6.0",
+    "librosa": "0.11.0",
+    "numpy": "2.5.4",
+    "python": "3.12.3",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1",
+    "soundfile": "0.14.0"
+  },
+  "evaluation_artifacts": {
+    "final_test_metrics": "reports/test_metrics.json",
+    "thresholds": "models/thresholds.json",
+    "validation_metrics": "reports/validation_metrics.json"
+  },
+  "feature_extractor": {
+    "channels": 1,
+    "entrypoint": "hearhere_audio.features.extract_features_from_file",
+    "feature_count": 40,
+    "feature_order": "mfcc_0_mean,mfcc_1_mean,mfcc_2_mean,mfcc_3_mean,mfcc_4_mean,mfcc_5_mean,mfcc_6_mean,mfcc_7_mean,mfcc_8_mean,mfcc_9_mean,mfcc_10_mean,mfcc_11_mean,mfcc_12_mean,mfcc_13_mean,mfcc_14_mean,mfcc_15_mean,mfcc_16_mean,mfcc_17_mean,mfcc_18_mean,mfcc_19_mean,mfcc_0_std,mfcc_1_std,mfcc_2_std,mfcc_3_std,mfcc_4_std,mfcc_5_std,mfcc_6_std,mfcc_7_std,mfcc_8_std,mfcc_9_std,mfcc_10_std,mfcc_11_std,mfcc_12_std,mfcc_13_std,mfcc_14_std,mfcc_15_std,mfcc_16_std,mfcc_17_std,mfcc_18_std,mfcc_19_std",
+    "hop_length": 512,
+    "long_audio_policy": "reject",
+    "n_fft": 2048,
+    "n_mels": 128,
+    "n_mfcc": 20,
+    "resample_type": "soxr_hq",
+    "sample_rate_hz": 16000,
+    "short_audio_policy": "zero_pad",
+    "std_ddof": 0,
+    "window_seconds": 5
+  },
+  "important_classes": [
+    "door_wood_knock",
+    "siren",
+    "glass_breaking"
+  ],
+  "model_sha256": "a499c853ef82561f9b5a74d23a6a8cb7af42a16970637d922b67a32cc8450957",
+  "model_type": "sklearn.ensemble.RandomForestClassifier",
+  "model_version": "hearhere-rf-v1",
+  "schema_version": "1.0",
+  "training": {
+    "parameters": {
+      "bootstrap": true,
+      "ccp_alpha": 0.0,
+      "class_weight": null,
+      "criterion": "gini",
+      "max_depth": null,
+      "max_features": "sqrt",
+      "max_leaf_nodes": null,
+      "max_samples": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 1,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "monotonic_cst": null,
+      "n_estimators": 300,
+      "n_jobs": -1,
+      "oob_score": false,
+      "random_state": 42,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "random_seed": 42
+  }
+}

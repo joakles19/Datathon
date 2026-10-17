@@ -1,0 +1,54 @@
+# Project-local instruction copies
+AGENTS.md
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local Python environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and IDEs
+.idea/
+.vscode/
+
+# Local logs and runtime databases
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# Downloaded datasets are local working inputs, not source artifacts
+data/
+datasets/
+
+# Coverage output
+.coverage
+.coverage.*
+htmlcov/
+
+data/raw/ESC-50/
+data/processed/
+
+
+# A2 local inputs
+.test_tmp/
+recordings/
