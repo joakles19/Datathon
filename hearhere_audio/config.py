@@ -10,6 +10,18 @@ HOP_LENGTH = 512
 N_MELS = 128
 RESAMPLE_TYPE = "soxr_hq"
 
+CLASSES = (
+    "door_wood_knock",
+    "engine",
+    "glass_breaking",
+    "keyboard_typing",
+    "rain",
+    "siren",
+    "vacuum_cleaner",
+    "wind",
+)
+ALERT_CLASSES = ("door_wood_knock", "siren", "glass_breaking")
+
 FEATURE_ORDER = tuple(
     [f"mfcc_{index}_mean" for index in range(N_MFCC)]
     + [f"mfcc_{index}_std" for index in range(N_MFCC)]
