@@ -11,7 +11,13 @@ import AlertLog from './components/AlertLog.jsx';
 import Settings from './components/Settings.jsx';
 import SoundPrefs from './components/SoundPrefs.jsx';
 
-const DEFAULT_SETTINGS = { api: DEFAULT_API, demo: true, chunk: 5, sound: true, notify: false };
+const DEFAULT_SETTINGS = {
+  api: DEFAULT_API,
+  demo: import.meta.env.VITE_DEMO_MODE === 'true',
+  chunk: 5,
+  sound: true,
+  notify: false,
+};
 let nextId = 1;
 
 export default function App() {
@@ -46,7 +52,9 @@ export default function App() {
       const alert = isAlert(r);
       const entry = { id: nextId++, time: Date.now(), name, source, alert, ...r };
       setResults(prev => [entry, ...prev].slice(0, 8));
-      setHistory(prev => [{ id: entry.id, time: entry.time, label: r.label, confidence: r.confidence, action: r.action }, ...prev].slice(0, 50));
+      if (r.confirmation !== 'pending') {
+        setHistory(prev => [{ id: entry.id, time: entry.time, label: r.label, confidence: r.confidence, action: r.action }, ...prev].slice(0, 50));
+      }
       if (alert) raiseAlert(entry);
     },
     [raiseAlert, setHistory]

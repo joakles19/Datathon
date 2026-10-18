@@ -14,10 +14,10 @@ export default function Results({ results }) {
             Could not analyse {r.name}: {r.error}. Check the backend URL or switch on demo mode.
           </div>
         ) : (
-          <div key={r.id} className={`result ${r.action === 'alert' ? 'alert' : r.action === 'suppressed' ? 'suppressed' : ''}`}>
+          <div key={r.id} className={`result ${r.confirmation === 'pending' ? 'pending' : r.action === 'alert' ? 'alert' : r.action === 'suppressed' ? 'suppressed' : ''}`}>
             <div className="top">
               <span>
-                {r.action === 'alert' ? 'Alert: ' : r.action === 'suppressed' ? 'Suppressed: ' : ''}
+                {r.confirmation === 'pending' ? 'Checking: ' : r.action === 'alert' ? 'Alert: ' : r.action === 'suppressed' ? 'Suppressed: ' : ''}
                 {nice(r.label)}
               </span>
               <span>score {pct(r.confidence)}</span>
@@ -27,7 +27,11 @@ export default function Results({ results }) {
             <div className="meta">
               {r.source} · {r.name}{r.window ? ` · ${r.window}` : ''} · {new Date(r.time).toLocaleTimeString()}
               {r.processing_ms ? ` · ${Math.round(r.processing_ms)} ms` : ''}
+              {r.model_version ? ` · ${r.model_version}` : ''}
             </div>
+            {r.predicted_label && r.predicted_label !== r.label && (
+              <div className="meta">Classifier top score: {nice(r.predicted_label)}</div>
+            )}
             {r.scores && Object.keys(r.scores).length > 0 && <div className="meta">Top scores: {topScores(r.scores)}</div>}
           </div>
         )

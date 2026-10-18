@@ -14,17 +14,26 @@
   "recommended_alert_classes": [
     "door_wood_knock",
     "siren",
-    "glass_breaking"
+    "glass_breaking",
+    "clock_alarm",
+    "crying_baby",
+    "car_horn"
   ],
   "minimum_scores": {
     "door_wood_knock": null,
     "siren": null,
-    "glass_breaking": null
+    "glass_breaking": null,
+    "clock_alarm": null,
+    "crying_baby": null,
+    "car_horn": null
   },
   "validation_metrics": {
     "door_wood_knock": null,
     "siren": null,
-    "glass_breaking": null
+    "glass_breaking": null,
+    "clock_alarm": null,
+    "crying_baby": null,
+    "car_horn": null
   },
   "notes": "Thresholds must be selected on Fold 4 only. Fold 5 must not be used for threshold selection."
 }

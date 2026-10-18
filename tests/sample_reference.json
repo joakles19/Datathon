@@ -2,18 +2,20 @@
   "file": "examples/1-31482-A-42.wav",
   "wav_sha256": "e4c640a001c2abe808389c90b90ba7084fb1922d58235e3ec95c18c4afb4ef5c",
   "predicted_class": "siren",
-  "model_score": 0.8566666666666667,
+  "model_score": 0.8666666666666667,
   "scores": {
-    "door_wood_knock": 0.016666666666666666,
+    "car_horn": 0.01,
+    "clock_alarm": 0.023333333333333334,
+    "crying_baby": 0.02666666666666667,
+    "door_wood_knock": 0.006666666666666667,
     "engine": 0.01,
     "glass_breaking": 0.013333333333333334,
-    "keyboard_typing": 0.05333333333333334,
-    "rain": 0.0033333333333333335,
-    "siren": 0.8566666666666667,
-    "vacuum_cleaner": 0.01,
-    "wind": 0.03666666666666667
+    "rain": 0.0,
+    "siren": 0.8666666666666667,
+    "vacuum_cleaner": 0.013333333333333334,
+    "wind": 0.03
   },
-  "model_version": "hearhere-rf-v1",
+  "model_version": "hearhere-rf-v2",
   "features": [
     -182.30519104003906,
     138.63876342773438,
@@ -56,6 +58,6 @@
     11.519797325134277,
     11.950068473815918
   ],
-  "model_sha256": "a499c853ef82561f9b5a74d23a6a8cb7af42a16970637d922b67a32cc8450957",
-  "reference_origin": "A2 Windows integration review; A1 parity confirmation pending; fold-1 sample, not accuracy evaluation"
+  "model_sha256": "272aa7a2778e2f92666166ea4a332107f24763d24070d3ecfc5f8248b2b229ff",
+  "reference_origin": "hearhere-rf-v2 local inference on the fold-1 sample; integration reference, not accuracy evaluation"
 }

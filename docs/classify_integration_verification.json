@@ -13,16 +13,18 @@
     "message": "Siren detected",
     "event_id": 1,
     "scores": {
-      "door_wood_knock": 0.016666666666666666,
+      "car_horn": 0.01,
+      "clock_alarm": 0.023333333333333334,
+      "crying_baby": 0.02666666666666667,
+      "door_wood_knock": 0.006666666666666667,
       "engine": 0.01,
       "glass_breaking": 0.013333333333333334,
-      "keyboard_typing": 0.05333333333333334,
-      "rain": 0.0033333333333333335,
-      "siren": 0.8566666666666667,
-      "vacuum_cleaner": 0.01,
-      "wind": 0.03666666666666667
+      "rain": 0.0,
+      "siren": 0.8666666666666667,
+      "vacuum_cleaner": 0.013333333333333334,
+      "wind": 0.03
     },
-    "model_version": "hearhere-rf-v1"
+    "model_version": "hearhere-rf-v2"
   },
   "repeated_action": "suppressed",
   "cli_action": "suppressed",

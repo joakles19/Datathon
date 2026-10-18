@@ -1,18 +1,18 @@
 # HearHere — A2 inference delivery
 
-Run A1's saved eight-class Random Forest on WAV recordings and return class scores. A2 supplies a persistent predictor, a one-shot function, a JSON CLI and a tuple adapter for B. Training and MFCC extraction remain A1's responsibility.
+Run A1's saved ten-class v2 Random Forest on WAV recordings and return class scores. A2 supplies a persistent predictor, a one-shot function, a JSON CLI and a tuple adapter for B. Training and MFCC extraction remain A1's responsibility.
 
-**Current integration status:** A1 has confirmed the sample features and all eight scores match across environments. The shared backend now exposes `POST /classify` on branch `ai_david`. Use the API consumer below for team integration; the local predictor remains available for diagnostics. See `docs/classify_api.md` for the current response contract.
+**Current integration status:** The `main` branch includes the frontend, backend and validated model. The browser sends WAV windows to `POST /classify`; the Python API consumer below remains available for command-line integration and diagnostics. See `docs/classify_api.md` for the current response contract.
 
 ## Consume the shared backend
 
-With B/D's running service base URL:
+With a reachable backend base URL:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/classify_api.py examples/1-31482-A-42.wav --base-url http://127.0.0.1:8000 --pretty
 ```
 
-The URL above is an example. Upload field: `file`. The client preserves the server response, including `predicted_label` (highest-scoring class), `label` (selected alert candidate), `confidence` (`scores[label]`), `action`, `priority`, `message`, `event_id`, all eight `scores` and `model_version`. It does not load a local model or choose thresholds. Actions and event policy remain with B. Source being pushed to GitHub does not by itself establish a running server address.
+The URL above is an example. Upload field: `file`. The client preserves the server response, including `predicted_label` (highest-scoring class), `label` (selected alert candidate), `confidence` (`scores[label]`), `action`, `priority`, `message`, `event_id`, all ten v2 `scores` and `model_version`. It does not load a local model or choose thresholds. The server owns action policy and event handling. Source being pushed to GitHub does not itself start a shared backend service.
 
 ## Setup on Windows
 
@@ -57,16 +57,18 @@ Successful stdout is JSON with exactly:
   "predicted_class": "siren",
   "model_score": 0.8566666666666667,
   "scores": {
-    "door_wood_knock": 0.016666666666666666,
+    "car_horn": 0.01,
+    "clock_alarm": 0.023333333333333334,
+    "crying_baby": 0.02666666666666667,
+    "door_wood_knock": 0.006666666666666667,
     "engine": 0.01,
     "glass_breaking": 0.013333333333333334,
-    "keyboard_typing": 0.05333333333333334,
-    "rain": 0.0033333333333333335,
-    "siren": 0.8566666666666667,
-    "vacuum_cleaner": 0.01,
-    "wind": 0.03666666666666667
+    "rain": 0.0,
+    "siren": 0.8666666666666667,
+    "vacuum_cleaner": 0.013333333333333334,
+    "wind": 0.03
   },
-  "model_version": "hearhere-rf-v1",
+  "model_version": "hearhere-rf-v2",
   "processing_ms": 123.4
 }
 ```
@@ -126,7 +128,7 @@ The integration sample is included at `examples/1-31482-A-42.wav`. Run the A2 su
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_api_client.py -v
 ```
 
-Local predictor tests use the actual saved model, check all eight reference scores, shared features, load-once behavior, save/reload consistency, tuple compatibility, metadata integrity, CLI behavior and invalid inputs. API consumer tests check multipart upload and response handling, including a case where selected and predicted labels differ. They do not train a model, use Fold 5 or establish classifier accuracy. A1 confirmed the reference on 17 October 2026; see `docs/A1_parity_confirmation.json` for the reported environment and independently compared feature vector.
+Local predictor tests use the actual saved model, check all ten reference scores, shared features, load-once behavior, save/reload consistency, tuple compatibility, metadata integrity, CLI behavior and invalid inputs. API consumer tests check multipart upload and response handling, including a case where selected and predicted labels differ. They do not train a model, use Fold 5 or establish classifier accuracy.
 
 ## LinuxONE
 

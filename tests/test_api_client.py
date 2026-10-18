@@ -17,9 +17,10 @@ def response_payload():
     return {
         "label": "siren", "predicted_label": "rain", "confidence": 0.31,
         "action": "alert", "priority": "high", "message": "Siren detected", "event_id": 17,
-        "scores": {"door_wood_knock": 0.08, "engine": 0.04, "glass_breaking": 0.06,
-                   "keyboard_typing": 0.05, "rain": 0.40, "siren": 0.31, "vacuum_cleaner": 0.03, "wind": 0.03},
-        "model_version": "hearhere-rf-v1",
+        "scores": {"car_horn": 0.01, "clock_alarm": 0.02, "crying_baby": 0.02,
+                   "door_wood_knock": 0.08, "engine": 0.04, "glass_breaking": 0.06,
+                   "rain": 0.40, "siren": 0.31, "vacuum_cleaner": 0.03, "wind": 0.03},
+        "model_version": "hearhere-rf-v2",
     }
 
 

@@ -110,7 +110,7 @@ class PredictorTests(unittest.TestCase):
     def test_short_stereo_wav_is_accepted(self):
         path = self.wav(data=np.zeros((8000, 2), dtype=np.float32))
         result = self.predictor.predict_file(path)
-        self.assertEqual(len(result["scores"]), 8)
+        self.assertEqual(len(result["scores"]), 10)
 
     def test_missing_empty_corrupt_and_zero_frame_inputs(self):
         empty = self.path / "empty.wav"
@@ -177,7 +177,7 @@ class PredictorTests(unittest.TestCase):
             AudioPredictor(self.path / "missing.joblib", METADATA)
 
     def test_invalid_model_scores_are_rejected(self):
-        with patch.object(self.predictor.model, "predict_proba", return_value=np.full((1, 8), np.nan)):
+        with patch.object(self.predictor.model, "predict_proba", return_value=np.full((1, 10), np.nan)):
             with self.assertRaisesRegex(PredictionError, "invalid class scores"):
                 self.predictor.predict_file(SAMPLE)
 

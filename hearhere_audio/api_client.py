@@ -43,13 +43,13 @@ def validate_classify_response(payload: Any) -> dict[str, Any]:
         raise ClassifyAPIError("Missing /classify fields: " + ", ".join(sorted(fields - payload.keys())))
     scores = payload["scores"]
     if not isinstance(scores, dict) or set(scores) != set(CLASSES) or not all(_score(v) for v in scores.values()):
-        raise ClassifyAPIError("scores must contain eight finite HearHere class scores between 0 and 1")
+        raise ClassifyAPIError("scores must contain one finite score for each configured HearHere class")
     # Normalization is an estimator-output consistency check, not calibration.
     if not math.isclose(sum(scores.values()), 1.0, rel_tol=0, abs_tol=1e-6):
         raise ClassifyAPIError("Class scores do not sum to one within tolerance")
     for field in ("label", "predicted_label"):
         if not isinstance(payload[field], str) or payload[field] not in scores:
-            raise ClassifyAPIError(f"{field} must name one of the eight classes")
+            raise ClassifyAPIError(f"{field} must name a configured HearHere class")
     if not math.isclose(scores[payload["predicted_label"]], max(scores.values()), rel_tol=0, abs_tol=1e-12):
         raise ClassifyAPIError("predicted_label does not have a highest class score")
     if not _score(payload["confidence"]) or not math.isclose(

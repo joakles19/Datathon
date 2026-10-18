@@ -6,33 +6,39 @@
   },
   "artifact_status": "trained_fold4_validated",
   "class_order": [
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
     "door_wood_knock",
     "engine",
     "glass_breaking",
-    "keyboard_typing",
     "rain",
     "siren",
     "vacuum_cleaner",
     "wind"
   ],
-  "created_at_utc": "2026-10-17T13:08:09.340840Z",
+  "created_at_utc": "2026-10-17T18:06:40.691144Z",
   "dataset": {
     "class_counts": {
       "train": {
+        "car_horn": 24,
+        "clock_alarm": 24,
+        "crying_baby": 24,
         "door_wood_knock": 24,
         "engine": 24,
         "glass_breaking": 24,
-        "keyboard_typing": 24,
         "rain": 24,
         "siren": 24,
         "vacuum_cleaner": 24,
         "wind": 24
       },
       "validation": {
+        "car_horn": 8,
+        "clock_alarm": 8,
+        "crying_baby": 8,
         "door_wood_knock": 8,
         "engine": 8,
         "glass_breaking": 8,
-        "keyboard_typing": 8,
         "rain": 8,
         "siren": 8,
         "vacuum_cleaner": 8,
@@ -40,17 +46,17 @@
       }
     },
     "fold_counts": {
-      "1": 64,
-      "2": 64,
-      "3": 64,
-      "4": 64
+      "1": 80,
+      "2": 80,
+      "3": 80,
+      "4": 80
     },
     "license": "CC BY-NC 3.0 (selected classes are outside the CC BY ESC-10 subset)",
     "name": "ESC-50",
     "revision": null,
     "sample_counts": {
-      "train": 192,
-      "validation": 64
+      "train": 240,
+      "validation": 80
     },
     "source_manifest_path": "reports/training_manifest.csv",
     "source_metadata_sha256": "ca660da60191a97de289983a05821c9382d852a38a2ba8428980816b68cf6246",
@@ -102,11 +108,14 @@
   "important_classes": [
     "door_wood_knock",
     "siren",
-    "glass_breaking"
+    "glass_breaking",
+    "clock_alarm",
+    "crying_baby",
+    "car_horn"
   ],
-  "model_sha256": "a499c853ef82561f9b5a74d23a6a8cb7af42a16970637d922b67a32cc8450957",
+  "model_sha256": "272aa7a2778e2f92666166ea4a332107f24763d24070d3ecfc5f8248b2b229ff",
   "model_type": "sklearn.ensemble.RandomForestClassifier",
-  "model_version": "hearhere-rf-v1",
+  "model_version": "hearhere-rf-v2",
   "schema_version": "1.0",
   "training": {
     "parameters": {

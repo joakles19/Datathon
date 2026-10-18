@@ -1,13 +1,13 @@
-# HearHere — A2 inference and API tools
+# HearHere
 
-This branch adds ZiYi's A2 predictor, JSON CLI, input validation, backend adapter and `/classify` API client on top of the `ai_david` model workflow. The trained model, preprocessing and Fold 4 thresholds are inherited from A1. A2 does not retrain the model or choose thresholds.
+HearHere connects the trained audio classifier, FastAPI alert policy, and React interface. A2's predictor, JSON CLI and API client are also available for diagnostics and service-to-service use. Model training and Fold 4 threshold selection remain A1's responsibility.
 
 ## Clone and run a real prediction
 
 Python **3.12** is required for the documented model environment. On Windows, with Python 3.12 installed:
 
 ```powershell
-git clone --branch ai_ZiYi --single-branch https://github.com/joakles19/Datathon.git
+git clone --branch main --single-branch https://github.com/joakles19/Datathon.git
 cd Datathon
 py -3.12 scripts/setup_environment.py
 .\.venv\Scripts\python.exe -m hearhere_audio examples/1-31482-A-42.wav --pretty
@@ -17,26 +17,46 @@ If `py -3.12` is unavailable, run `scripts/setup_environment.py` using the full 
 
 The model and an attributed test WAV are included. No full dataset download is needed for this smoke test. The supplied example returns `siren` with uncalibrated score `0.8566666666666667`. It is a fold-1 integration example, not an accuracy benchmark. See [sample attribution](examples/README.md).
 
+## Run the connected frontend and backend
+
+Python **3.12** is required. Install Python dependencies from the repository root, then start the API:
+
+```sh
+python3.12 scripts/setup_environment.py
+.venv/bin/python -m uvicorn backends.main:app --host 127.0.0.1 --port 8000
+```
+
+In a second terminal, start the React app:
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173`. Demo mode is off by default, and the frontend sends converted WAV windows to `http://localhost:8000/classify`. Set `VITE_API_URL` for another reachable backend or `VITE_DEMO_MODE=true` only when simulated results are wanted. The Settings panel's **Test connection** checks `/health`.
+
+The browser converts uploaded or recorded audio to mono 16 kHz PCM WAV and splits it into windows of at most five seconds. Live monitoring requests browser noise suppression and automatic gain control when supported, then sends overlapping five-second windows once per second. The backend confirms an important sound in two of the latest three windows before creating a live alert event. The UI displays pending checks separately; single recordings and uploads retain their one-clip behavior. Browser audio processing is device-dependent and must be checked with real target microphones.
+
 ## Test the shared API
 
-Obtain the running backend's reachable base URL from B/D, then:
+With the local backend running, or using a reachable shared backend URL:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/classify_api.py examples/1-31482-A-42.wav --base-url http://127.0.0.1:8000 --pretty
 ```
 
-The address above works only when a backend is running on your own computer. A1's `127.0.0.1` address is not reachable from another teammate's machine. This branch contains A2 tools and A1 model artifacts; the current A1 baseline does not include `backends/main.py`. B/D supplies the server or shared deployment.
+The address above works only when a backend is running on your own computer. A `127.0.0.1` address is not reachable from another teammate's machine; for team testing, use a backend URL reachable by that teammate.
 
-Upload field: `file`. Preserve `predicted_label` (model top class), `label` (backend-selected candidate), `confidence = scores[label]`, all eight scores and the server's `action`. B owns thresholds, cooldown, snooze, acknowledgement and event handling. Scores are not calibrated real-world probabilities.
+Upload field: `file`. Preserve `predicted_label` (model top class), `label` (backend-selected candidate), `confidence = scores[label]`, all ten v2 class scores and the server's `action`. B owns thresholds, cooldown, snooze, acknowledgement and event handling. Scores are not calibrated real-world probabilities.
 
-## Run A2's 31 tests
+## Run the tests
 
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_predict.py -v
-.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_api_client.py -v
+```sh
+.venv/bin/python -m pytest -q
 ```
 
-These are the 20 predictor/integration tests and 11 API-client tests. A1's other test modules are preserved; backend tests require B's backend source and the development dependencies. A2's tests do not use Fold 5 or establish real-world detection accuracy.
+This covers audio features, model loading and inference, the HTTP backend, and the API client. Tests do not use Fold 5 or establish real-world detection accuracy.
 
 ## Handoff documents
 

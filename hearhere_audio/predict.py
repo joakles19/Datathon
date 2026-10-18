@@ -66,7 +66,7 @@ def _read_metadata(path: Path) -> dict:
     if not isinstance(classes, list) or not all(isinstance(c, str) for c in classes):
         raise ModelLoadError("Metadata class_order must be a list of class labels")
     if len(classes) != len(config.CLASSES) or set(classes) != set(config.CLASSES):
-        raise ModelLoadError("Metadata class_order must contain each of the eight HearHere labels once")
+        raise ModelLoadError("Metadata class_order must contain each configured HearHere label once")
     feature = metadata.get("feature_extractor")
     if not isinstance(feature, dict):
         raise ModelLoadError("Metadata must contain feature_extractor settings")

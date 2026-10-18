@@ -6,10 +6,12 @@
   "created_at_utc": null,
   "model_sha256": null,
   "class_order": [
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
     "door_wood_knock",
     "engine",
     "glass_breaking",
-    "keyboard_typing",
     "rain",
     "siren",
     "vacuum_cleaner",
@@ -18,7 +20,10 @@
   "important_classes": [
     "door_wood_knock",
     "siren",
-    "glass_breaking"
+    "glass_breaking",
+    "clock_alarm",
+    "crying_baby",
+    "car_horn"
   ],
   "feature_extractor": {
     "entrypoint": "hearhere_audio.features.extract_features_from_file",
@@ -40,35 +45,52 @@
     "name": "ESC-50",
     "source_url": "https://github.com/karolpiczak/ESC-50",
     "revision": null,
-    "license": "CC BY-NC 3.0",
+    "license": "CC BY-NC 3.0 (selected classes are outside the CC BY ESC-10 subset)",
     "source_metadata_sha256": null,
     "source_manifest_path": "reports/training_manifest.csv",
     "class_counts": {
       "train": {
+        "car_horn": null,
+        "clock_alarm": null,
+        "crying_baby": null,
         "door_wood_knock": null,
         "engine": null,
         "glass_breaking": null,
-        "keyboard_typing": null,
         "rain": null,
         "siren": null,
         "vacuum_cleaner": null,
         "wind": null
       },
       "validation": {
+        "car_horn": null,
+        "clock_alarm": null,
+        "crying_baby": null,
         "door_wood_knock": null,
         "engine": null,
         "glass_breaking": null,
-        "keyboard_typing": null,
+        "rain": null,
+        "siren": null,
+        "vacuum_cleaner": null,
+        "wind": null
+      },
+      "final_test": {
+        "car_horn": null,
+        "clock_alarm": null,
+        "crying_baby": null,
+        "door_wood_knock": null,
+        "engine": null,
+        "glass_breaking": null,
         "rain": null,
         "siren": null,
         "vacuum_cleaner": null,
         "wind": null
       }
     },
-    "fold_counts": {"1": null, "2": null, "3": null, "4": null},
+    "fold_counts": {"1": null, "2": null, "3": null, "4": null, "5": null},
     "sample_counts": {
       "train": null,
-      "validation": null
+      "validation": null,
+      "final_test": null
     },
     "split": {
       "train_folds": [1, 2, 3],

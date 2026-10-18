@@ -2,17 +2,23 @@
   "artifact_status": "fold4_thresholds_selected",
   "minimum_recall": 0.75,
   "minimum_scores": {
-    "door_wood_knock": 0.5966666666666667,
+    "car_horn": 0.18666666666666668,
+    "clock_alarm": 0.30333333333333334,
+    "crying_baby": 0.6633333333333333,
+    "door_wood_knock": 0.6866666666666666,
     "glass_breaking": 0.5166666666666667,
-    "siren": 0.30333333333333334
+    "siren": 0.25333333333333335
   },
-  "model_version": "hearhere-rf-v1",
+  "model_version": "hearhere-rf-v2",
   "notes": "Selected on Fold 4 only. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Fold 5 remains reserved for final evaluation.",
   "policy_owner": "backend",
   "recommended_alert_classes": [
     "door_wood_knock",
     "siren",
-    "glass_breaking"
+    "glass_breaking",
+    "clock_alarm",
+    "crying_baby",
+    "car_horn"
   ],
   "schema_version": "1.0",
   "score_interpretation": "Uncalibrated Random Forest class score; not a real-world event probability",
@@ -25,6 +31,39 @@
     ]
   },
   "validation_metrics": {
+    "car_horn": {
+      "alert_count": 21,
+      "f1": 0.4137931034482759,
+      "false_negative_count": 2,
+      "false_positive_count": 15,
+      "precision": 0.2857142857142857,
+      "recall": 0.75,
+      "support": 8,
+      "threshold": 0.18666666666666668,
+      "true_positive_count": 6
+    },
+    "clock_alarm": {
+      "alert_count": 6,
+      "f1": 0.8571428571428571,
+      "false_negative_count": 2,
+      "false_positive_count": 0,
+      "precision": 1.0,
+      "recall": 0.75,
+      "support": 8,
+      "threshold": 0.30333333333333334,
+      "true_positive_count": 6
+    },
+    "crying_baby": {
+      "alert_count": 6,
+      "f1": 0.8571428571428571,
+      "false_negative_count": 2,
+      "false_positive_count": 0,
+      "precision": 1.0,
+      "recall": 0.75,
+      "support": 8,
+      "threshold": 0.6633333333333333,
+      "true_positive_count": 6
+    },
     "door_wood_knock": {
       "alert_count": 6,
       "f1": 0.8571428571428571,
@@ -33,7 +72,7 @@
       "precision": 1.0,
       "recall": 0.75,
       "support": 8,
-      "threshold": 0.5966666666666667,
+      "threshold": 0.6866666666666666,
       "true_positive_count": 6
     },
     "glass_breaking": {
@@ -55,7 +94,7 @@
       "precision": 0.75,
       "recall": 0.75,
       "support": 8,
-      "threshold": 0.30333333333333334,
+      "threshold": 0.25333333333333335,
       "true_positive_count": 6
     }
   }

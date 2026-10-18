@@ -2,15 +2,15 @@
 
 ## Current status — 17 October 2026
 
-A1's sample parity check is confirmed: model/WAV hashes match, the supplied 40-value feature vector is within tolerance (maximum absolute difference `1.9073486328125e-06`), and A1 reports all eight score differences are zero. Result: `siren`, uncalibrated score `0.8566666666666667`. The relayed confirmation and vector comparison are recorded in `A1_parity_confirmation.json`.
+The v2 fold-1 sample reference is recorded in `tests/sample_reference.json`, including the model/WAV hashes, 40-value feature vector and ten class scores. It is an integration reference, not a held-out accuracy measurement.
 
-The backend on branch `ai_david` already uses real inference and exposes `POST /classify`. **The API contract in `classify_api.md` supersedes the earlier placeholder-replacement instructions below for team integration.** Use `ClassifyClient` or `scripts/classify_api.py` to consume it. Preserve `predicted_label`, policy-selected `label`, `confidence = scores[label]`, all scores and server actions. B owns alert policy and event handling. A2 has not changed the model or thresholds; the current ai_david baseline does not contain the backend server file.
+The `main` branch now includes the real-inference FastAPI service and React client. **The API contract in `classify_api.md` supersedes the earlier placeholder-replacement instructions below for team integration.** Use the browser client, `ClassifyClient`, or `scripts/classify_api.py` to consume `POST /classify`. Preserve `predicted_label`, policy-selected `label`, `confidence = scores[label]`, all scores and server actions. The backend owns alert policy and event handling; the browser and API client do not retrain the model or select thresholds.
 
 ## Files and ownership
 
-- A1 owns `config.py`, `features.py`, the fitted model and its metadata. These are inherited unchanged from the fetched ai_david baseline; the model binary matches handoff v1.
+- A1 owns `config.py`, `features.py`, the fitted model and its metadata. The v2 model is a ten-class model and excludes `keyboard_typing`.
 - A2 adds `predict.py`, `backend_adapter.py`, `cli.py`, the CLI entry points, tests, requirements updates and documentation.
-- B owns its HTTP handler and all alert policy. No backend app source was available in the target clone during implementation.
+- B owns the HTTP handler and alert policy in `backends/main.py`; A2's API client remains a separate consumer for service-to-service use.
 - D owns deployment and environment validation on LinuxONE.
 
 ## B: startup and requests
@@ -46,7 +46,7 @@ Use `examples/1-31482-A-42.wav`. SHA256:
 e4c640a001c2abe808389c90b90ba7084fb1922d58235e3ec95c18c4afb4ef5c
 ```
 
-The A2 reference is `tests/sample_reference.json`: all 40 feature values, all eight scores, model version, model checksum and WAV checksum. A1 has confirmed the cross-environment comparison for this sample. It is not held-out evaluation.
+The v2 reference is `tests/sample_reference.json`: all 40 feature values, all ten scores, model version, model checksum and WAV checksum. It is not held-out evaluation.
 
 Run the same shared extractor and model on A1's environment and compare features with `rtol=1e-5, atol=1e-4`. The model-score comparison target for the recorded sample is absolute tolerance `1e-12`. If feature/platform differences lead to a tree decision changing, investigate the dependencies and preprocessing before changing the reference or tolerance.
 

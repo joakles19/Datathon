@@ -34,6 +34,7 @@ from hearhere_audio.config import (
     N_MFCC,
     RESAMPLE_TYPE,
     SAMPLE_RATE,
+    MODEL_VERSION,
     WINDOW_SAMPLES,
     WINDOW_SECONDS,
 )
@@ -49,6 +50,7 @@ VALIDATION_FOLD = 4
 RANDOM_SEED = 42
 N_ESTIMATORS = 300
 MINIMUM_ALERT_RECALL = 0.75
+SAMPLES_PER_CLASS_PER_FOLD = 8
 
 
 def read_rows(dataset_root: Path) -> list[dict[str, str]]:
@@ -91,7 +93,7 @@ def read_rows(dataset_root: Path) -> list[dict[str, str]]:
     if missing:
         raise FileNotFoundError(f"Missing audio files ({len(missing)}): {missing[:5]}")
 
-    expected_classes_per_fold = 8
+    expected_classes_per_fold = SAMPLES_PER_CLASS_PER_FOLD
     counts = Counter((int(row["fold"]), row["category"]) for row in rows)
     incorrect = {
         (fold, category): counts[(fold, category)]
@@ -277,10 +279,12 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     audio_dir = dataset_root / "audio"
     train_rows = [row for row in rows if int(row["fold"]) in TRAIN_FOLDS]
     validation_rows = [row for row in rows if int(row["fold"]) == VALIDATION_FOLD]
-    if len(train_rows) != 192 or len(validation_rows) != 64:
+    expected_train = len(CLASSES) * len(TRAIN_FOLDS) * SAMPLES_PER_CLASS_PER_FOLD
+    expected_validation = len(CLASSES) * SAMPLES_PER_CLASS_PER_FOLD
+    if len(train_rows) != expected_train or len(validation_rows) != expected_validation:
         raise ValueError(
-            f"Expected 192 training and 64 validation rows; got "
-            f"{len(train_rows)} and {len(validation_rows)}"
+            f"Expected {expected_train} training and {expected_validation} validation rows; "
+            f"got {len(train_rows)} and {len(validation_rows)}"
         )
 
     print("Extracting training features from folds 1-3")
@@ -320,7 +324,7 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     metadata = {
         "schema_version": "1.0",
         "artifact_status": "trained_fold4_validated",
-        "model_version": "hearhere-rf-v1",
+        "model_version": MODEL_VERSION,
         "model_type": "sklearn.ensemble.RandomForestClassifier",
         "created_at_utc": created_at,
         "model_sha256": sha256_file(model_path),

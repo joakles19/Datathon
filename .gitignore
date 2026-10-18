@@ -45,6 +45,14 @@ datasets/
 .coverage.*
 htmlcov/
 
+# Frontend build output
+frontend/node_modules/
+frontend/dist/
+
+# Local analysis and browser tooling output
+.codegraph/
+.playwright-cli/
+
 data/raw/ESC-50/
 data/processed/
 
