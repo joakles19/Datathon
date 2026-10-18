@@ -1,7 +1,10 @@
 """Load the trained classifier and produce scores using the shared features."""
 
+from __future__ import annotations
+
 import hashlib
 import json
+import platform
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +20,7 @@ from .panns import (
     PannsError,
     extract_embedding_from_bytes,
 )
+from .portable_model import PortableModelError, load_portable_model
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -76,10 +80,25 @@ class HearHereClassifier:
         return value
 
     def _load_model(self):
+        portable_name = self.metadata.get("portable_model_file")
+        portable_path = self.metadata_path.parent / portable_name if isinstance(portable_name, str) else None
+        if platform.machine() == "s390x" and portable_path is not None and portable_path.is_file():
+            portable_hash = hashlib.sha256(portable_path.read_bytes()).hexdigest()
+            if portable_hash != self.metadata.get("portable_model_sha256"):
+                raise ModelArtifactError("Portable model hash does not match model_metadata.json")
+            try:
+                return load_portable_model(portable_path)
+            except PortableModelError as exc:
+                raise ModelArtifactError(str(exc)) from exc
         try:
             return joblib.load(self.model_path)
         except Exception as exc:
-            raise ModelArtifactError(f"Could not load trained model: {self.model_path}") from exc
+            if portable_path is None or not portable_path.is_file():
+                raise ModelArtifactError(f"Could not load trained model: {self.model_path}") from exc
+            try:
+                return load_portable_model(portable_path)
+            except PortableModelError as portable_exc:
+                raise ModelArtifactError(f"Could not load trained model: {self.model_path}") from portable_exc
 
     def _validate_artifacts(self) -> None:
         if self.metadata.get("artifact_status") != "trained_fold4_validated":

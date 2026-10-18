@@ -185,5 +185,9 @@
       "random_state": 42,
       "solver": "lbfgs"
     }
-  }
+  },
+  "portable_model_file": "hearhere_panns_lr_portable.npz",
+  "portable_model_sha256": "00e98e154f775c0d3cdec7462bb505bdff42888d2ad574d8fbbb3369f923ccdb",
+  "portable_model_type": "NumPy StandardScaler + multinomial LogisticRegression arrays",
+  "portable_model_runtime": "Used on s390x because approved IBM Torch runtime has no supported scikit-learn wheel"
 }

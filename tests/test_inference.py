@@ -12,6 +12,7 @@ from hearhere_audio.inference import (
     ModelArtifactError,
     ModelPredictionError,
 )
+from hearhere_audio.portable_model import load_portable_model
 
 
 def wav_bytes() -> bytes:
@@ -33,6 +34,19 @@ def test_classifier_returns_all_class_scores_and_model_version():
     assert "keyboard_typing" not in prediction["scores"]
     assert len(prediction["scores"]) == 10
     assert sum(prediction["scores"].values()) == pytest.approx(1.0)
+
+
+def test_portable_head_matches_joblib_head():
+    classifier = HearHereClassifier()
+    portable = load_portable_model(
+        classifier.metadata_path.parent / classifier.metadata["portable_model_file"]
+    )
+    features = np.random.default_rng(42).normal(size=(3, 2048))
+
+    np.testing.assert_allclose(
+        portable.predict_proba(features), classifier.model.predict_proba(features),
+        rtol=1e-6, atol=1e-6,
+    )
 
 
 def test_classifier_resolves_metadata_model_file_for_string_default_path():

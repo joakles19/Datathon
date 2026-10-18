@@ -204,9 +204,13 @@ class PannsEmbeddingExtractor:
             self.model = model if model is not None else _build_cnn14_16k()
             # This upstream release stores NumPy metadata with its weights.
             # The fixed published MD5 check above gates this legacy pickle load.
-            checkpoint = torch.load(
-                self.checkpoint_path, map_location="cpu", weights_only=False
-            )
+            try:
+                checkpoint = torch.load(
+                    self.checkpoint_path, map_location="cpu", weights_only=False
+                )
+            except TypeError:
+                # Torch 1.10 is the approved s390x wheel and predates this kwarg.
+                checkpoint = torch.load(self.checkpoint_path, map_location="cpu")
             state_dict = checkpoint.get("model", checkpoint)
             self.model.load_state_dict(state_dict, strict=True)
             self.model.to("cpu")

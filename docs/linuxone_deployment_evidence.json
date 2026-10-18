@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "status": "cpu_smoke_deployment_verified",
+  "verified_at_utc": "2026-10-18T08:06:00Z",
+  "host": {
+    "address": "148.100.99.208",
+    "architecture": "s390x",
+    "os": "Ubuntu 24.04.5 LTS",
+    "kernel": "6.8.0-147-generic",
+    "python": "3.9.18",
+    "cpu_count": 2,
+    "memory_gib": 3.9
+  },
+  "runtime": {
+    "torch": "1.10.0a0+git36449ea",
+    "torch_wheel_source": "https://github.com/IBM/pytorch-on-z/blob/packages/torch-1.10.0-cp39-cp39-linux_s390x.whl",
+    "torch_wheel_sha256": "7ae57e0bef2e6ce9a278ca11c2579ae563b2add83f363aeea4c281ea95ff8695",
+    "numpy": "1.23.5",
+    "scipy": "1.9.3",
+    "torchlibrosa": "0.1.0",
+    "fastapi": "0.128.8",
+    "uvicorn": "0.39.0",
+    "portable_model": "NumPy StandardScaler + multinomial LogisticRegression arrays"
+  },
+  "checkpoint": {
+    "source": "https://zenodo.org/records/3987831/files/Cnn14_16k_mAP%3D0.438.pth?download=1",
+    "license": "CC BY 4.0",
+    "size_bytes": 358668570,
+    "md5": "362fc5ff18f1d6ad2f6d464b45893f2c"
+  },
+  "embedding_smoke_test": {
+    "wav": "examples/1-31482-A-42.wav",
+    "shape": [2048],
+    "dtype": "float32",
+    "finite": true,
+    "repeat_max_abs_diff": 0.0
+  },
+  "api_smoke_test": {
+    "health": {"status": "ok", "model_version": "hearhere-panns-v2"},
+    "classify_label": "siren",
+    "score_count": 10,
+    "processing_ms_samples": [417.6, 359.4, 385.3, 426.4, 450.9],
+    "contract": "POST /classify returns label, predicted_label, confidence, scores, model_version, action, priority, message, event_id, processing_ms and confirmation"
+  },
+  "local_verification": {
+    "pytest": "76 passed, 6 warnings, 27 subtests passed",
+    "frontend_build": "vite build passed",
+    "portable_vs_joblib_max_probability_difference": 6.1e-08
+  },
+  "limitations": [
+    "No systemd service, public ingress or HTTPS was configured.",
+    "LinuxONE uses a deployment-specific librosa compatibility layer because no usable s390x Numba wheel was available.",
+    "The eight-example-per-class ESC-50 folds do not establish real-world microphone accuracy.",
+    "Model scores remain uncalibrated classifier scores, not event probabilities."
+  ]
+}

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import sqlite3
 import threading
 import time
 from collections import OrderedDict, deque
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from fastapi import File, FastAPI, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -77,7 +79,7 @@ def pick_label(top_label: str, scores: dict[str, float]):
     return top_label, scores[top_label]
 
 
-def record_monitor_window(stream_id: str, window_index: int, candidate: str | None, now: float) -> int:
+def record_monitor_window(stream_id: str, window_index: int, candidate: Optional[str], now: float) -> int:
     """Keep a bounded per-stream history of recent threshold-clearing candidates."""
     expired = [
         key for key, state in monitor_windows.items()
@@ -117,8 +119,8 @@ def decide(label: str, conf: float, now: float):
 @app.post("/classify")
 def classify(
     file: UploadFile = File(...),
-    stream_id: str | None = Form(default=None, min_length=1, max_length=64),
-    window_index: int | None = Form(default=None, ge=0),
+    stream_id: Optional[str] = Form(default=None, min_length=1, max_length=64),
+    window_index: Optional[int] = Form(default=None, ge=0),
 ):
     if (stream_id is None) != (window_index is None):
         raise HTTPException(400, "stream_id and window_index must be provided together")
@@ -206,10 +208,10 @@ def get_prefs():
 
 
 class PrefUpdate(BaseModel):
-    enabled: bool | None = None
-    threshold: float | None = Field(default=None, ge=0, le=1)
-    cooldown: int | None = Field(default=None, ge=0)
-    priority: Literal["high", "normal"] | None = None
+    enabled: Optional[bool] = None
+    threshold: Optional[float] = Field(default=None, ge=0, le=1)
+    cooldown: Optional[int] = Field(default=None, ge=0)
+    priority: Optional[Literal["high", "normal"]] = None
 
 
 @app.put("/prefs/{label}")
