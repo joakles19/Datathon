@@ -28,24 +28,26 @@ Core experience:
 
 1. Capture a short audio clip.
 2. Standardise the clip to mono, 16 kHz, and a five-second analysis window.
-3. Extract 40 MFCC features: 20 coefficient means plus 20 population standard deviations.
-4. Classify the clip with a Random Forest model across eight sound classes.
+3. Extract one 2048-value embedding from a frozen PANNs CNN14 model.
+4. Classify the clip with a standardized Logistic Regression head across ten sound classes.
 5. Apply per-sound preferences, confidence thresholds, priorities, cooldowns, snooze, and acknowledgement state.
 6. Store an event history so the user can review what was detected.
 
-The three alert-oriented classes are `door_wood_knock`, `siren`, and `glass_breaking`. Other classes provide context and help the classifier distinguish ordinary background sounds.
+The six alert-oriented classes are `door_wood_knock`, `siren`, `glass_breaking`, `clock_alarm`, `crying_baby`, and `car_horn`. Other classes provide context and help the classifier distinguish ordinary background sounds.
 
 ## What exists today
 
 ### Working model and evaluation flow
 
 - Reproducible audio preprocessing and feature extraction in `hearhere_audio/`.
-- Random Forest baseline with 300 trees and fixed random seed 42.
-- ESC-50 selected classes: door knock, engine, glass breaking, keyboard typing, rain, siren, vacuum cleaner, and wind.
-- Official fold split: folds 1-3 for training, fold 4 for validation, fold 5 reserved for final evaluation.
-- Training data: 192 clips.
-- Validation data: 64 clips.
-- Model artifact: `models/hearhere_rf.joblib`.
+- Random Forest baseline retained and compared against PANNs on Fold 4.
+- Selected model: frozen PANNs CNN14 embeddings with standardized Logistic Regression, fixed random seed 42.
+- ESC-50 selected classes: car horn, clock alarm, crying baby, door knock, engine, glass breaking, rain, siren, vacuum cleaner, and wind.
+- Official fold split: folds 1-3 for training, fold 4 for validation, and fold 5 evaluated once after model lock (accuracy 97.50%, macro F1 97.49%).
+- Training data: 240 clips.
+- Validation data: 80 clips.
+- Selected model artifact: `models/hearhere_panns_lr.joblib`.
+- PANNs checkpoint: downloaded to an ignored local cache and verified against Zenodo's published checksum.
 - Measured report: `reports/validation_metrics.json`.
 
 ### Backend interaction scaffold
@@ -58,37 +60,40 @@ The FastAPI backend already exposes the product control loop:
 - `GET/PUT /prefs/{label}` for per-sound settings.
 - `POST /snooze` for temporary suppression.
 
-The policy layer is implemented, including alert priority, cooldown, snooze, acknowledgement, and event logging. The current `predict()` function is still a placeholder returning a fixed siren score; wiring the trained model into this endpoint is a next implementation step.
+The trained model is loaded by the endpoint. It scores each WAV, applies the per-class alert thresholds, manages cooldown and snooze, and records events for acknowledgement and history. The browser client sends converted WAV windows to this endpoint and displays the returned action.
 
 ## Evidence from the current baseline
 
-The following results are measured on ESC-50 Fold 4 only. They are a technical baseline, not a claim of real-world microphone or emergency performance.
+The following results are measured on ESC-50 Fold 4 only. They are a small technical comparison, not a claim of real-world microphone or emergency performance.
 
 | Metric | Result |
 |---|---:|
-| Validation accuracy | 81.25% |
-| Macro F1 | 80.93% |
-| Weighted F1 | 80.93% |
-| Validation samples | 64 |
-| Sound classes | 8 |
+| Selected PANNs validation accuracy | 93.75% |
+| Selected PANNs macro F1 | 93.78% |
+| Random Forest baseline accuracy | 77.5% |
+| Random Forest baseline macro F1 | 76.39% |
+| Mean alert recall at the precision rule | 81.25% |
+| Validation samples | 80 |
+| Sound classes | 10 |
 
 ### Important sound performance
 
 | Sound | Precision | Recall | F1 | Interpretation |
 |---|---:|---:|---:|---|
-| Door knock | 100.0% | 87.5% | 93.3% | Strongest alert-oriented result in this run |
-| Glass breaking | 63.6% | 87.5% | 73.7% | Good catch rate, but false positives need attention |
-| Siren | 70.0% | 87.5% | 77.8% | Good catch rate, with room to improve precision |
+| Door knock | 100.0% | 100.0% | 100.0% | 8 validation examples |
+| Glass breaking | 100.0% | 100.0% | 100.0% | 8 validation examples |
+| Siren | 100.0% | 87.5% | 93.3% | Selected score threshold; 8 examples |
+| Clock alarm | 100.0% | 100.0% | 100.0% | 8 validation examples |
+| Crying baby | 100.0% | 100.0% | 100.0% | 8 validation examples |
+| Car horn | Disabled | Disabled | Disabled | No threshold met the 85% precision target |
 
 ### What the confusion matrix suggests
 
-- Rain was recognised correctly in all 8 validation examples.
-- Door knock and glass breaking were each detected in 7 of 8 examples.
-- Siren was detected in 7 of 8 examples.
-- Wind was sometimes confused with siren, which matters for false-alert control.
-- Engine was the weakest class in this run: 4 of 8 examples were correct.
+- The selected model classified 75 of 80 Fold 4 examples correctly.
+- Five alert classes met the validation precision rule; car horn remains a model output but is disabled as an alert.
+- Each class has only eight examples in this fold, so one clip changes recall by 12.5 percentage points.
 
-Use these observations to motivate threshold tuning and more diverse recordings; do not present them as universal performance guarantees.
+Use these observations to motivate real microphone testing and more diverse recordings; do not present them as universal performance guarantees.
 
 ## Suggested slide narrative
 
@@ -96,7 +101,7 @@ Use these observations to motivate threshold tuning and more diverse recordings;
 
 **Headline:** Make important sounds visible.
 
-Show a simple visual journey from an unseen sound cue to a clear visual prompt. Keep the product name and the three priority events prominent: door knock, siren, glass break.
+Show a simple visual journey from an unseen sound cue to a clear visual prompt. Keep the product name and the six priority events prominent: door knock, siren, glass break, clock alarm, crying baby, and car horn.
 
 ### Slide 2 - The missed cue problem
 
@@ -108,15 +113,15 @@ Show the flow: listen -> recognise -> decide -> prompt -> acknowledge. Use a moc
 
 ### Slide 4 - From audio to visual context
 
-Show the technical pipeline: five-second audio window -> 40 MFCC features -> Random Forest -> policy layer -> visual alert and event history.
+Show the technical pipeline: five-second audio window -> frozen PANNs CNN14 embedding -> Logistic Regression -> policy layer -> visual alert and event history.
 
 ### Slide 5 - What the prototype recognises
 
-Display the eight classes as a balanced sound map. Visually distinguish the three alert-oriented classes from ordinary/context classes.
+Display the ten classes as a balanced sound map. Visually distinguish the six alert-oriented classes from ordinary/context classes.
 
 ### Slide 6 - Baseline evidence
 
-Lead with 81.25% validation accuracy and 80.93% macro F1. Add a compact bar chart for precision, recall, and F1 of door knock, glass breaking, and siren.
+Lead with 77.5% validation accuracy and 76.39% macro F1. Add a compact bar chart for precision, recall, and F1 of the six alert classes.
 
 ### Slide 7 - Why policy matters
 
@@ -124,17 +129,17 @@ Show that a classifier score alone is not an alert. Demonstrate configurable thr
 
 ### Slide 8 - Responsible prototype boundaries
 
-State clearly: Fold 5 final evaluation is still pending; alert thresholds have not yet been selected through a fixed validation policy; real microphone and diverse-environment testing is still needed; the backend model hook is currently a placeholder. This transparency is part of the product credibility.
+State clearly: Fold 5 final evaluation is still pending, and real microphone and diverse-environment testing is still needed. The local frontend/backend/model flow is implemented, but it is not a validated emergency-warning device. This transparency is part of the product credibility.
 
 ### Slide 9 - Roadmap and ask
 
 Show the next steps:
 
-1. Connect the trained model to the FastAPI inference endpoint.
-2. Agree a threshold objective that balances missed important sounds against false alerts.
+1. Test the full flow on additional recordings and supported browsers.
+2. Deploy the API to the shared environment and verify it there.
 3. Freeze the model and policy, then run the reserved Fold 5 evaluation.
 4. Test with real microphones, varied rooms, background noise, and accessibility users.
-5. Build the visual client and measure alert usefulness, acknowledgement time, and user trust.
+5. Measure alert usefulness, acknowledgement time, and user trust.
 
 Close with the ask: support a focused pilot to turn a measured audio baseline into a reliable, user-configurable awareness tool.
 
@@ -147,21 +152,21 @@ Close with the ask: support a focused pilot to turn a measured audio baseline in
 5. Acknowledge the event and open the event history.
 6. Change a preference or snooze a sound to demonstrate user control.
 
-For a live demo, label any simulated result clearly and do not imply that the current hard-coded backend prediction is the trained model output.
+For a demo, label simulated results clearly. In live mode, show the model version and distinguish its top-scoring class from the backend-selected alert label when those differ.
 
 ## Claims the deck may make
 
 - HearHere is a working assistive prototype with a reproducible audio classification baseline.
-- The current model reaches 81.25% accuracy and 80.93% macro F1 on the measured ESC-50 Fold 4 validation split.
+- The selected PANNs model reaches 93.75% accuracy and 93.78% macro F1 on ESC-50 Fold 4 (80 clips).
+- On the one-time reserved Fold 5 run, it reaches 97.5% accuracy and 97.49% macro F1 (80 clips); this small benchmark does not establish microphone accuracy.
 - The product combines sound recognition with a user-facing alert policy, rather than exposing raw classifier scores alone.
 - The design prioritises user control through thresholds, cooldowns, snooze, acknowledgement, and history.
 
 ## Claims to avoid
 
 - Do not call HearHere a validated emergency-warning system.
-- Do not describe Random Forest scores as calibrated real-world probabilities.
-- Do not claim final test performance before Fold 5 is run.
-- Do not claim live end-to-end model inference while the backend `predict()` placeholder remains.
+- Do not describe classifier scores as calibrated real-world probabilities.
+- Do not claim LinuxONE deployment until the approved PyTorch/PANNs runtime passes the host test.
 - Do not claim clinical, safety-critical, or universal accessibility outcomes without user testing.
 
 ## Source files for the PowerPoint agent

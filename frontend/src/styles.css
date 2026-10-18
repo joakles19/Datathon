@@ -36,6 +36,7 @@ audio { width: 100%; margin-top: 10px; }
 .result { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; background: var(--panel2); }
 .result.alert { border-color: var(--danger); }
 .result.suppressed { border-color: var(--warn); }
+.result.pending { border-color: var(--accent); }
 .result .top { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; text-transform: capitalize; }
 .bar { height: 6px; border-radius: 3px; background: var(--line); margin: 8px 0; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--ok); }

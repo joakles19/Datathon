@@ -1,0 +1,11 @@
+true\predicted,car_horn,clock_alarm,crying_baby,door_wood_knock,engine,glass_breaking,rain,siren,vacuum_cleaner,wind
+car_horn,8,0,0,0,0,0,0,0,0,0
+clock_alarm,0,8,0,0,0,0,0,0,0,0
+crying_baby,0,0,8,0,0,0,0,0,0,0
+door_wood_knock,0,0,0,8,0,0,0,0,0,0
+engine,0,0,0,0,8,0,0,0,0,0
+glass_breaking,0,0,0,0,0,8,0,0,0,0
+rain,1,0,0,0,0,0,7,0,0,0
+siren,0,0,0,0,0,0,0,8,0,0
+vacuum_cleaner,0,0,0,0,0,0,0,0,8,0
+wind,0,0,0,0,0,0,0,1,0,7

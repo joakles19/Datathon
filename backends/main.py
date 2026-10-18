@@ -1,14 +1,24 @@
-import sqlite3, threading, time
-from typing import Literal
+from __future__ import annotations
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import sqlite3
+import threading
+import time
+from collections import OrderedDict, deque
+from pathlib import Path
+from typing import Literal, Optional
+
+from fastapi import File, FastAPI, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from hearhere_audio.config import ALERT_CLASSES
 from hearhere_audio.features import AudioProcessingError
-from hearhere_audio.inference import HearHereClassifier
+from hearhere_audio.inference import HearHereClassifier, ModelPredictionError
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MONITOR_WINDOW_HISTORY = 3
+MONITOR_STATE_TTL_SECONDS = 60
+MAX_MONITOR_STREAMS = 256
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
@@ -19,7 +29,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
 classifier = HearHereClassifier()
 
 lock = threading.Lock()
-db = sqlite3.connect("events.db", check_same_thread=False)
+DATABASE_PATH = Path(__file__).resolve().parents[1] / "events.db"
+db = sqlite3.connect(DATABASE_PATH, check_same_thread=False)
 db.row_factory = sqlite3.Row
 db.execute("""CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,13 +39,31 @@ db.execute("""CREATE TABLE IF NOT EXISTS events (
 
 # Default thresholds come from models/thresholds.json (selected on fold 4).
 FOLD4 = classifier.thresholds["minimum_scores"]
+ALERT_SETTINGS = {
+    "siren": {"cooldown": 30, "priority": "high", "message": "Siren detected"},
+    "glass_breaking": {"cooldown": 30, "priority": "high", "message": "Glass may have broken"},
+    "door_wood_knock": {"cooldown": 15, "priority": "normal", "message": "Someone may be at the door"},
+    "clock_alarm": {"cooldown": 30, "priority": "high", "message": "Clock alarm detected"},
+    "crying_baby": {"cooldown": 30, "priority": "high", "message": "Crying baby detected"},
+    "car_horn": {"cooldown": 30, "priority": "high", "message": "Car horn detected"},
+}
 PREFS = {
-    "siren":           {"enabled": True, "threshold": FOLD4["siren"],           "cooldown": 30, "priority": "high",   "message": "Siren detected"},
-    "glass_breaking":  {"enabled": True, "threshold": FOLD4["glass_breaking"],  "cooldown": 30, "priority": "high",   "message": "Glass may have broken"},
-    "door_wood_knock": {"enabled": True, "threshold": FOLD4["door_wood_knock"], "cooldown": 15, "priority": "normal", "message": "Someone may be at the door"},
+    label: {
+        "enabled": label in classifier.thresholds["recommended_alert_classes"],
+        "threshold": FOLD4.get(label, 1.0),
+        **ALERT_SETTINGS[label],
+    }
+    for label in ALERT_CLASSES
 }
 last_alert: dict[str, float] = {}
 snoozed_until: dict[str, float] = {}
+monitor_windows: OrderedDict[str, dict] = OrderedDict()
+
+
+@app.get("/health")
+def health():
+    """Report that the backend and validated model are ready."""
+    return {"status": "ok", "model_version": classifier.metadata["model_version"]}
 
 
 def pick_label(top_label: str, scores: dict[str, float]):
@@ -50,6 +79,31 @@ def pick_label(top_label: str, scores: dict[str, float]):
     return top_label, scores[top_label]
 
 
+def record_monitor_window(stream_id: str, window_index: int, candidate: Optional[str], now: float) -> int:
+    """Keep a bounded per-stream history of recent threshold-clearing candidates."""
+    expired = [
+        key for key, state in monitor_windows.items()
+        if now - state["updated_at"] > MONITOR_STATE_TTL_SECONDS
+    ]
+    for key in expired:
+        del monitor_windows[key]
+
+    state = monitor_windows.get(stream_id)
+    if state is None:
+        state = {"updated_at": now, "last_index": -1, "candidates": deque(maxlen=MONITOR_WINDOW_HISTORY)}
+        monitor_windows[stream_id] = state
+    elif window_index <= state["last_index"]:
+        raise HTTPException(409, "monitor windows must arrive in increasing order")
+
+    state["candidates"].append(candidate)
+    state["last_index"] = window_index
+    state["updated_at"] = now
+    monitor_windows.move_to_end(stream_id)
+    while len(monitor_windows) > MAX_MONITOR_STREAMS:
+        monitor_windows.popitem(last=False)
+    return sum(item == candidate for item in state["candidates"]) if candidate else 0
+
+
 def decide(label: str, conf: float, now: float):
     p = PREFS.get(label)
     if p is None or not p["enabled"] or conf < p["threshold"]:
@@ -63,7 +117,13 @@ def decide(label: str, conf: float, now: float):
 
 
 @app.post("/classify")
-def classify(file: UploadFile = File(...)):
+def classify(
+    file: UploadFile = File(...),
+    stream_id: Optional[str] = Form(default=None, min_length=1, max_length=64),
+    window_index: Optional[int] = Form(default=None, ge=0),
+):
+    if (stream_id is None) != (window_index is None):
+        raise HTTPException(400, "stream_id and window_index must be provided together")
     audio = file.file.read(MAX_UPLOAD_BYTES + 1)
     if not audio:
         raise HTTPException(400, "empty file")
@@ -75,12 +135,40 @@ def classify(file: UploadFile = File(...)):
         result = classifier.predict_bytes(audio)
     except AudioProcessingError as exc:
         raise HTTPException(422, str(exc))
+    except ModelPredictionError as exc:
+        raise HTTPException(500, "Model inference failed") from exc
     processing_ms = round((time.perf_counter() - started) * 1000, 1)
 
     scores = result["scores"]
     label, conf = pick_label(result["label"], scores)
     now = time.time()
     with lock:
+        confirmation = "not_required"
+        if stream_id is not None and window_index is not None:
+            candidate = (
+                label
+                if label in PREFS and PREFS[label]["enabled"] and conf >= PREFS[label]["threshold"]
+                else None
+            )
+            matching_windows = record_monitor_window(stream_id, window_index, candidate, now)
+            if candidate is not None and matching_windows < 2:
+                return {
+                    "label": candidate,
+                    "predicted_label": result["label"],
+                    "confidence": scores[candidate],
+                    "scores": scores,
+                    "model_version": result["model_version"],
+                    "action": "ignore",
+                    "priority": PREFS[candidate]["priority"],
+                    "message": "Waiting for a second match in the recent monitoring windows",
+                    "event_id": None,
+                    "processing_ms": processing_ms,
+                    "confirmation": "pending",
+                }
+            if candidate is not None:
+                label = candidate
+                conf = scores[candidate]
+                confirmation = "confirmed"
         action, priority, message = decide(label, conf, now)
         event_id = None
         if action != "ignore":
@@ -92,11 +180,12 @@ def classify(file: UploadFile = File(...)):
     return {"label": label, "predicted_label": result["label"], "confidence": conf,
             "scores": scores, "model_version": result["model_version"],
             "action": action, "priority": priority, "message": message,
-            "event_id": event_id, "processing_ms": processing_ms}
+            "event_id": event_id, "processing_ms": processing_ms,
+            "confirmation": confirmation}
 
 
 @app.get("/events")
-def events(limit: int = 50):
+def events(limit: int = Query(default=50, ge=1, le=200)):
     with lock:
         rows = db.execute("SELECT * FROM events ORDER BY ts DESC LIMIT ?", (limit,)).fetchall()
     return [dict(r) for r in rows]
@@ -119,10 +208,10 @@ def get_prefs():
 
 
 class PrefUpdate(BaseModel):
-    enabled: bool | None = None
-    threshold: float | None = Field(default=None, ge=0, le=1)
-    cooldown: int | None = Field(default=None, ge=0)
-    priority: Literal["high", "normal"] | None = None
+    enabled: Optional[bool] = None
+    threshold: Optional[float] = Field(default=None, ge=0, le=1)
+    cooldown: Optional[int] = Field(default=None, ge=0)
+    priority: Optional[Literal["high", "normal"]] = None
 
 
 @app.put("/prefs/{label}")

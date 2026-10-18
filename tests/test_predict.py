@@ -19,12 +19,13 @@ import soundfile as sf
 
 from hearhere_audio.backend_adapter import predict_label_score
 from hearhere_audio.cli import main
-from hearhere_audio.features import AudioProcessingError, extract_features_from_file
+from hearhere_audio.features import AudioProcessingError
+from hearhere_audio.panns import EMBEDDING_DIM, extract_embedding_from_file
 from hearhere_audio.predict import AudioPredictor, ModelLoadError, PredictionError, predict_file
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL = ROOT / "models/hearhere_rf.joblib"
+MODEL = ROOT / "models/hearhere_panns_lr.joblib"
 METADATA = ROOT / "models/model_metadata.json"
 SAMPLE = ROOT / "examples/1-31482-A-42.wav"
 REFERENCE = ROOT / "tests/sample_reference.json"
@@ -76,8 +77,10 @@ class PredictorTests(unittest.TestCase):
         json.dumps(self.result, allow_nan=False)
 
     def test_sample_features_match_review_reference(self):
-        actual = extract_features_from_file(SAMPLE)
-        np.testing.assert_allclose(actual, self.reference["features"], rtol=1e-5, atol=1e-4)
+        actual = extract_embedding_from_file(SAMPLE, self.predictor.panns_extractor)
+        self.assertEqual(actual.shape, (EMBEDDING_DIM,))
+        self.assertTrue(np.isfinite(actual).all())
+        np.testing.assert_allclose(actual, self.reference["embedding"], rtol=1e-5, atol=1e-4)
 
     def test_convenience_function_matches_persistent_predictor(self):
         result = predict_file(SAMPLE, MODEL, METADATA)
@@ -91,6 +94,12 @@ class PredictorTests(unittest.TestCase):
             second = predictor.predict_file(SAMPLE)
             self.assertEqual(load.call_count, 1)
         self.assertEqual(first["scores"], second["scores"])
+
+    def test_predictor_resolves_metadata_model_file_for_string_default_path(self):
+        predictor = AudioPredictor(str(ROOT / "models" / "hearhere_rf.joblib"), METADATA)
+
+        self.assertEqual(predictor.model_path.name, "hearhere_panns_lr.joblib")
+        self.assertEqual(predictor.metadata["model_file"], predictor.model_path.name)
 
     def test_save_reload_preserves_real_model_output(self):
         model_path = self.path / "roundtrip.joblib"
@@ -110,7 +119,7 @@ class PredictorTests(unittest.TestCase):
     def test_short_stereo_wav_is_accepted(self):
         path = self.wav(data=np.zeros((8000, 2), dtype=np.float32))
         result = self.predictor.predict_file(path)
-        self.assertEqual(len(result["scores"]), 8)
+        self.assertEqual(len(result["scores"]), 10)
 
     def test_missing_empty_corrupt_and_zero_frame_inputs(self):
         empty = self.path / "empty.wav"
@@ -132,10 +141,15 @@ class PredictorTests(unittest.TestCase):
     def test_long_wav_is_rejected_before_feature_extraction(self):
         for sr in (16000, 44100):
             path = self.wav(data=np.zeros(sr * 5 + 1), sr=sr)
-            with self.subTest(sr=sr), patch("hearhere_audio.predict.extract_features_from_file") as extract:
+            with self.subTest(sr=sr), patch(
+                "hearhere_audio.predict.extract_features_from_file"
+            ) as extract_mfcc, patch(
+                "hearhere_audio.predict.extract_embedding_from_file"
+            ) as extract_panns:
                 with self.assertRaisesRegex(AudioProcessingError, "longer than 5 seconds"):
                     self.predictor.predict_file(path)
-                extract.assert_not_called()
+                extract_mfcc.assert_not_called()
+                extract_panns.assert_not_called()
 
     def test_nonwav_container_and_disguised_extension_are_rejected(self):
         flac = self.wav("input.flac", format="FLAC")
@@ -162,9 +176,9 @@ class PredictorTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelLoadError, "class order"):
             AudioPredictor(MODEL, meta_path)
 
-    def test_wrong_feature_order_is_rejected(self):
-        meta_path = self.metadata(lambda m: m["feature_extractor"].update(feature_order="wrong"))
-        with self.assertRaisesRegex(ModelLoadError, "feature_order"):
+    def test_wrong_panns_checkpoint_is_rejected(self):
+        meta_path = self.metadata(lambda m: m["feature_extractor"].update(checkpoint_md5="0" * 32))
+        with self.assertRaisesRegex(ModelLoadError, "checkpoint_md5"):
             AudioPredictor(MODEL, meta_path)
 
     def test_missing_and_invalid_metadata_and_model_are_clear_errors(self):
@@ -177,7 +191,7 @@ class PredictorTests(unittest.TestCase):
             AudioPredictor(self.path / "missing.joblib", METADATA)
 
     def test_invalid_model_scores_are_rejected(self):
-        with patch.object(self.predictor.model, "predict_proba", return_value=np.full((1, 8), np.nan)):
+        with patch.object(self.predictor.model, "predict_proba", return_value=np.full((1, 10), np.nan)):
             with self.assertRaisesRegex(PredictionError, "invalid class scores"):
                 self.predictor.predict_file(SAMPLE)
 

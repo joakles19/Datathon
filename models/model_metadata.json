@@ -1,38 +1,44 @@
 {
   "alert_policy": {
-    "minimum_recall": 0.75,
-    "selection_method": "Highest observed Fold 4 score meeting the minimum recall for each alert class",
-    "selection_objective": "Minimize false alerts subject to the per-class recall constraint"
+    "minimum_precision": 0.85,
+    "selection_method": "For each alert class, maximize recall over observed Fold 4 thresholds that meet minimum precision; disable classes with no qualifying threshold",
+    "selection_objective": "Maximize mean recall across all six alert classes, counting disabled classes as zero, subject to at least 85% Fold 4 precision for enabled classes"
   },
   "artifact_status": "trained_fold4_validated",
   "class_order": [
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
     "door_wood_knock",
     "engine",
     "glass_breaking",
-    "keyboard_typing",
     "rain",
     "siren",
     "vacuum_cleaner",
     "wind"
   ],
-  "created_at_utc": "2026-10-17T13:08:09.340840Z",
+  "created_at_utc": "2026-10-18T02:41:48.349662Z",
   "dataset": {
     "class_counts": {
       "train": {
+        "car_horn": 24,
+        "clock_alarm": 24,
+        "crying_baby": 24,
         "door_wood_knock": 24,
         "engine": 24,
         "glass_breaking": 24,
-        "keyboard_typing": 24,
         "rain": 24,
         "siren": 24,
         "vacuum_cleaner": 24,
         "wind": 24
       },
       "validation": {
+        "car_horn": 8,
+        "clock_alarm": 8,
+        "crying_baby": 8,
         "door_wood_knock": 8,
         "engine": 8,
         "glass_breaking": 8,
-        "keyboard_typing": 8,
         "rain": 8,
         "siren": 8,
         "vacuum_cleaner": 8,
@@ -40,17 +46,17 @@
       }
     },
     "fold_counts": {
-      "1": 64,
-      "2": 64,
-      "3": 64,
-      "4": 64
+      "1": 80,
+      "2": 80,
+      "3": 80,
+      "4": 80
     },
     "license": "CC BY-NC 3.0 (selected classes are outside the CC BY ESC-10 subset)",
     "name": "ESC-50",
     "revision": null,
     "sample_counts": {
-      "train": 192,
-      "validation": 64
+      "train": 240,
+      "validation": 80
     },
     "source_manifest_path": "reports/training_manifest.csv",
     "source_metadata_sha256": "ca660da60191a97de289983a05821c9382d852a38a2ba8428980816b68cf6246",
@@ -76,7 +82,9 @@
     "python": "3.12.3",
     "scikit-learn": "1.9.1",
     "scipy": "1.18.1",
-    "soundfile": "0.14.0"
+    "soundfile": "0.14.0",
+    "torch": "2.10.0",
+    "torchlibrosa": "0.1.0"
   },
   "evaluation_artifacts": {
     "final_test_metrics": "reports/test_metrics.json",
@@ -84,52 +92,102 @@
     "validation_metrics": "reports/validation_metrics.json"
   },
   "feature_extractor": {
+    "backbone": "PANNs CNN14 16 kHz AudioSet",
     "channels": 1,
-    "entrypoint": "hearhere_audio.features.extract_features_from_file",
-    "feature_count": 40,
-    "feature_order": "mfcc_0_mean,mfcc_1_mean,mfcc_2_mean,mfcc_3_mean,mfcc_4_mean,mfcc_5_mean,mfcc_6_mean,mfcc_7_mean,mfcc_8_mean,mfcc_9_mean,mfcc_10_mean,mfcc_11_mean,mfcc_12_mean,mfcc_13_mean,mfcc_14_mean,mfcc_15_mean,mfcc_16_mean,mfcc_17_mean,mfcc_18_mean,mfcc_19_mean,mfcc_0_std,mfcc_1_std,mfcc_2_std,mfcc_3_std,mfcc_4_std,mfcc_5_std,mfcc_6_std,mfcc_7_std,mfcc_8_std,mfcc_9_std,mfcc_10_std,mfcc_11_std,mfcc_12_std,mfcc_13_std,mfcc_14_std,mfcc_15_std,mfcc_16_std,mfcc_17_std,mfcc_18_std,mfcc_19_std",
-    "hop_length": 512,
+    "checkpoint_md5": "362fc5ff18f1d6ad2f6d464b45893f2c",
+    "entrypoint": "hearhere_audio.panns.extract_embedding_from_file",
+    "feature_count": 2048,
+    "feature_order": null,
+    "hop_length": null,
     "long_audio_policy": "reject",
-    "n_fft": 2048,
-    "n_mels": 128,
-    "n_mfcc": 20,
+    "n_fft": null,
+    "n_mels": null,
+    "n_mfcc": null,
     "resample_type": "soxr_hq",
     "sample_rate_hz": 16000,
     "short_audio_policy": "zero_pad",
-    "std_ddof": 0,
+    "std_ddof": null,
+    "type": "panns_cnn14",
     "window_seconds": 5
   },
   "important_classes": [
     "door_wood_knock",
     "siren",
-    "glass_breaking"
+    "glass_breaking",
+    "clock_alarm",
+    "crying_baby",
+    "car_horn"
   ],
-  "model_sha256": "a499c853ef82561f9b5a74d23a6a8cb7af42a16970637d922b67a32cc8450957",
-  "model_type": "sklearn.ensemble.RandomForestClassifier",
-  "model_version": "hearhere-rf-v1",
+  "model_file": "hearhere_panns_lr.joblib",
+  "model_sha256": "ebab2c16465171c6f8001d820bb148b4036f3b8bdf0e049487ac30d405dfa164",
+  "model_type": "sklearn.pipeline.Pipeline(StandardScaler,LogisticRegression)",
+  "model_version": "hearhere-panns-v2",
   "schema_version": "1.0",
   "training": {
-    "parameters": {
-      "bootstrap": true,
-      "ccp_alpha": 0.0,
-      "class_weight": null,
-      "criterion": "gini",
-      "max_depth": null,
-      "max_features": "sqrt",
-      "max_leaf_nodes": null,
-      "max_samples": null,
-      "min_impurity_decrease": 0.0,
-      "min_samples_leaf": 1,
-      "min_samples_split": 2,
-      "min_weight_fraction_leaf": 0.0,
-      "monotonic_cst": null,
-      "n_estimators": 300,
-      "n_jobs": -1,
-      "oob_score": false,
-      "random_state": 42,
-      "verbose": 0,
-      "warm_start": false
+    "panns_logistic_regression": {
+      "checkpoint_attribution": "PANNs by Qiuqiang Kong et al.; Zenodo record 3987831",
+      "checkpoint_license": "CC BY 4.0",
+      "checkpoint_md5": "362fc5ff18f1d6ad2f6d464b45893f2c",
+      "checkpoint_source": "https://zenodo.org/records/3987831/files/Cnn14_16k_mAP%3D0.438.pth?download=1",
+      "embedding_dimension": 2048,
+      "model_file": "hearhere_panns_lr.joblib",
+      "parameters": {
+        "C": 1.0,
+        "max_iter": 2000,
+        "random_state": 42,
+        "solver": "lbfgs"
+      },
+      "pipeline": [
+        "StandardScaler",
+        "LogisticRegression"
+      ],
+      "training_folds": [
+        1,
+        2,
+        3
+      ]
     },
-    "random_seed": 42
-  }
+    "random_forest_baseline": {
+      "model_file": "hearhere_rf.joblib",
+      "model_sha256": "272aa7a2778e2f92666166ea4a332107f24763d24070d3ecfc5f8248b2b229ff",
+      "parameters": {
+        "bootstrap": true,
+        "ccp_alpha": 0.0,
+        "class_weight": null,
+        "criterion": "gini",
+        "max_depth": null,
+        "max_features": "sqrt",
+        "max_leaf_nodes": null,
+        "max_samples": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "monotonic_cst": null,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "oob_score": false,
+        "random_state": 42,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "training_folds": [
+        1,
+        2,
+        3
+      ]
+    },
+    "random_seed": 42,
+    "selected_candidate": "panns_cnn14_logistic_regression",
+    "selected_parameters": {
+      "C": 1.0,
+      "max_iter": 2000,
+      "random_state": 42,
+      "solver": "lbfgs"
+    }
+  },
+  "portable_model_file": "hearhere_panns_lr_portable.npz",
+  "portable_model_sha256": "00e98e154f775c0d3cdec7462bb505bdff42888d2ad574d8fbbb3369f923ccdb",
+  "portable_model_type": "NumPy StandardScaler + multinomial LogisticRegression arrays",
+  "portable_model_runtime": "Used on s390x because approved IBM Torch runtime has no supported scikit-learn wheel"
 }

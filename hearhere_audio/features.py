@@ -1,5 +1,7 @@
 """Canonical WAV preprocessing and 40-dimensional MFCC extraction."""
 
+from __future__ import annotations
+
 from io import BytesIO
 from pathlib import Path
 

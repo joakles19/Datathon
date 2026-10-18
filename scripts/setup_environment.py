@@ -29,6 +29,9 @@ def main() -> int:
         "--retries", "1", "--timeout", "30", "-r", str(root / "requirements.txt"),
     ], check=True)
     subprocess.run([str(executable), "-m", "pip", "check"], check=True)
+    subprocess.run([
+        str(executable), "-m", "hearhere_audio.panns", "--download-checkpoint",
+    ], cwd=root, check=True)
     print(f"Ready. Project Python: {executable}", flush=True)
     return 0
 

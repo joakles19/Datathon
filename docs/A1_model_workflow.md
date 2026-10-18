@@ -4,11 +4,11 @@ HearHere is a sound-awareness prototype that classifies selected environmental s
 
 ## Current status
 
-- Shared WAV preprocessing and 40-dimensional MFCC extraction are implemented in `hearhere_audio/`.
-- The Random Forest training and Fold 4 validation flow is implemented in `scripts/train.py`.
-- Per-class Fold 4 alert thresholds are recorded in `models/thresholds.json`, using a 75% minimum recall constraint to reduce false alerts.
-- `POST /classify` loads the validated model, returns all eight class scores, and applies B's per-sound alert policy.
-- Fold 5 remains reserved for final evaluation after the model and alert rules are fixed.
+- Shared WAV preprocessing, 40-dimensional MFCC extraction and frozen PANNs CNN14 embeddings are implemented in `hearhere_audio/`.
+- `scripts/train.py` compares the existing Random Forest baseline with standardized Logistic Regression over PANNs embeddings.
+- Fold 4 alert thresholds require at least 85% precision per enabled class; nonqualifying classes are disabled as alerts but remain classifier outputs.
+- `POST /classify` loads the validated model, returns all ten class scores, and applies B's per-sound alert policy for six alert classes.
+- Fold 5 was evaluated once after the model and alert rules were fixed; do not rerun it or tune from its results.
 - Do not treat files ending in `.template.json` as trained-model metadata or measured results.
 
 ## Audio feature contract
@@ -22,7 +22,7 @@ python -m pip install -r requirements.txt -r requirements-dev.txt
 python -m pytest
 ```
 
-Train the baseline and create the model plus Fold 4 validation artifacts:
+Compare both candidates and create the selected model plus Fold 4 validation artifacts (requires the verified local PANNs checkpoint):
 
 ```sh
 python -m scripts.train --dataset data/raw/ESC-50
@@ -36,7 +36,9 @@ uvicorn backends.main:app --reload
 
 ## Dataset and evaluation plan
 
-The selected ESC-50 classes are `door_wood_knock`, `siren`, `glass_breaking`, `rain`, `wind`, `keyboard_typing`, `vacuum_cleaner`, and `engine`. The intended split is official folds 1-3 for training, fold 4 for validation and threshold selection, and fold 5 for final evaluation after the model and rules are fixed. Dataset files are local inputs and are not included in Git.
+The selected v2 ESC-50 classes are `car_horn`, `clock_alarm`, `crying_baby`, `door_wood_knock`, `engine`, `glass_breaking`, `rain`, `siren`, `vacuum_cleaner`, and `wind`. `keyboard_typing` is excluded because it was too easily confused with door knocks. The intended split is official folds 1-3 for training, fold 4 for validation and threshold selection, and fold 5 for final evaluation after the model and rules are fixed. Dataset files are local inputs and are not included in Git.
+
+The current selected candidate is PANNs CNN14 with a Logistic Regression head. Fold 4 selected five alert classes; `car_horn` is disabled because it had no threshold at or above the required precision. Fold 5 was run once after model and thresholds were locked. See `docs/model-artifacts.md` for measured results and limitations. LinuxONE remains a hard deployment gate and has not been verified.
 
 ## Model artifacts
 

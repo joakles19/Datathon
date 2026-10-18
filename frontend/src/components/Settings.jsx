@@ -17,9 +17,10 @@ export default function Settings({ settings, setSettings, onTestAlert }) {
     if (settings.demo) return setMsg('Demo mode is on – no backend is called.');
     setMsg('Checking…');
     try {
-      setMsg((await checkHealth(settings.api)) ? 'Backend reachable.' : 'Backend responded with an error.');
-    } catch {
-      setMsg('Could not reach backend (check the URL and that CORS is enabled).');
+      const health = await checkHealth(settings.api);
+      setMsg(`Backend reachable (${health.model_version}).`);
+    } catch (err) {
+      setMsg(err.message || 'Could not reach backend (check the URL and that CORS is enabled).');
     }
   };
 
@@ -34,14 +35,6 @@ export default function Settings({ settings, setSettings, onTestAlert }) {
       <label htmlFor="api">Backend URL</label>
       <input id="api" type="text" value={settings.api} placeholder="http://localhost:8000"
         onChange={e => set({ api: e.target.value.trim() })} />
-
-      <div style={{ marginTop: 12 }}>
-        <div>
-          <label htmlFor="chunk">Monitor chunk (2–5 s)</label>
-          <input id="chunk" type="number" min="2" max="5" value={settings.chunk}
-            onChange={e => set({ chunk: Math.min(5, Math.max(2, +e.target.value || 5)) })} />
-        </div>
-      </div>
 
       <label className="check" style={{ marginTop: 12 }}>
         <input type="checkbox" checked={settings.sound} onChange={e => set({ sound: e.target.checked })} />

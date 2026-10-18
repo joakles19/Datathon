@@ -34,7 +34,8 @@ export default function Recorder({ recorder, lastClip }) {
       {error && <p className="meta err">{error}</p>}
       <p className="meta" style={{ margin: '10px 0 0' }}>
         <b>Record</b> captures one clip and analyses it when you stop. <b>Monitoring</b> keeps the mic open and
-        analyses it in short chunks.
+        analyses an overlapping five-second window every second. Live alerts require the same important sound in
+        at least two of the last three windows.
       </p>
       {url && <audio src={url} controls />}
     </section>

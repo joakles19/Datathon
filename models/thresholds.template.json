@@ -6,25 +6,21 @@
     "dataset": "ESC-50",
     "folds": [4]
   },
-  "score_interpretation": "Uncalibrated Random Forest class score; not a real-world event probability",
+  "score_interpretation": "Uncalibrated classifier score; not a real-world event probability",
   "policy_owner": "backend",
-  "minimum_recall": null,
-  "selection_objective": null,
-  "selection_method": null,
-  "recommended_alert_classes": [
+  "minimum_precision": 0.85,
+  "selection_objective": "Maximize mean recall across all six alert classes, counting disabled classes as zero, subject to at least 85% Fold 4 precision for enabled classes",
+  "selection_method": "For each class, select the observed Fold 4 threshold with maximum recall among thresholds meeting minimum precision; disable classes with no qualifying threshold",
+  "recommended_alert_classes": [],
+  "disabled_alert_classes": [
     "door_wood_knock",
     "siren",
-    "glass_breaking"
+    "glass_breaking",
+    "clock_alarm",
+    "crying_baby",
+    "car_horn"
   ],
-  "minimum_scores": {
-    "door_wood_knock": null,
-    "siren": null,
-    "glass_breaking": null
-  },
-  "validation_metrics": {
-    "door_wood_knock": null,
-    "siren": null,
-    "glass_breaking": null
-  },
-  "notes": "Thresholds must be selected on Fold 4 only. Fold 5 must not be used for threshold selection."
+  "minimum_scores": {},
+  "validation_metrics": {},
+  "notes": "This is a template, not a measured result. Select on Fold 4 only; do not use Fold 5 to select thresholds."
 }

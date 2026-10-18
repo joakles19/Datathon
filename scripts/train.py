@@ -1,4 +1,4 @@
-"""Train the Random Forest baseline and evaluate it on ESC-50 fold 4."""
+"""Compare the existing Random Forest with a frozen PANNs embedding head."""
 
 import argparse
 import csv
@@ -15,6 +15,7 @@ import librosa
 import numpy as np
 import sklearn
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -23,6 +24,8 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from hearhere_audio.config import (
     ALERT_CLASSES,
@@ -38,6 +41,14 @@ from hearhere_audio.config import (
     WINDOW_SECONDS,
 )
 from hearhere_audio.features import extract_features_from_file
+from hearhere_audio.panns import (
+    CHECKPOINT_MD5,
+    CHECKPOINT_URL,
+    DEFAULT_CACHE_PATH,
+    EMBEDDING_DIM,
+    PannsEmbeddingExtractor,
+    extract_embedding_from_file,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -48,7 +59,14 @@ TRAIN_FOLDS = (1, 2, 3)
 VALIDATION_FOLD = 4
 RANDOM_SEED = 42
 N_ESTIMATORS = 300
-MINIMUM_ALERT_RECALL = 0.75
+MINIMUM_ALERT_PRECISION = 0.85
+SAMPLES_PER_CLASS_PER_FOLD = 8
+LOGISTIC_REGRESSION_PARAMETERS = {
+    "C": 1.0,
+    "max_iter": 2000,
+    "random_state": RANDOM_SEED,
+    "solver": "lbfgs",
+}
 
 
 def read_rows(dataset_root: Path) -> list[dict[str, str]]:
@@ -91,7 +109,7 @@ def read_rows(dataset_root: Path) -> list[dict[str, str]]:
     if missing:
         raise FileNotFoundError(f"Missing audio files ({len(missing)}): {missing[:5]}")
 
-    expected_classes_per_fold = 8
+    expected_classes_per_fold = SAMPLES_PER_CLASS_PER_FOLD
     counts = Counter((int(row["fold"]), row["category"]) for row in rows)
     incorrect = {
         (fold, category): counts[(fold, category)]
@@ -114,6 +132,20 @@ def extract_matrix(rows: list[dict[str, str]], audio_dir: Path) -> np.ndarray:
         if index % 32 == 0 or index == len(rows):
             print(f"Extracted {index}/{len(rows)} feature vectors")
     return np.vstack(features)
+
+
+def extract_embedding_matrix(
+    rows: list[dict[str, str]], audio_dir: Path, extractor: PannsEmbeddingExtractor
+) -> np.ndarray:
+    embeddings = []
+    for index, row in enumerate(rows, start=1):
+        vector = extract_embedding_from_file(audio_dir / row["filename"], extractor)
+        if vector.shape != (EMBEDDING_DIM,) or not np.isfinite(vector).all():
+            raise ValueError(f"Invalid PANNs embedding for {row['filename']}")
+        embeddings.append(vector)
+        if index % 32 == 0 or index == len(rows):
+            print(f"Extracted {index}/{len(rows)} PANNs embeddings")
+    return np.vstack(embeddings)
 
 
 def build_validation_metrics(
@@ -173,17 +205,15 @@ def select_alert_thresholds(
     true_labels: np.ndarray,
     scores: np.ndarray,
     model_classes: np.ndarray,
-    minimum_recall: float = MINIMUM_ALERT_RECALL,
+    minimum_precision: float = MINIMUM_ALERT_PRECISION,
 ) -> dict[str, dict[str, float | int]]:
-    """Choose per-alert-class thresholds using Fold 4 scores only.
-
-    The highest observed score that still meets the recall constraint minimizes
-    binary alert positives, and therefore false alerts, for that class.
-    """
-    if not 0 < minimum_recall <= 1:
-        raise ValueError("minimum_recall must be greater than 0 and at most 1")
+    """Choose maximum-recall Fold 4 thresholds that meet precision target."""
+    if not 0 < minimum_precision <= 1:
+        raise ValueError("minimum_precision must be greater than 0 and at most 1")
     if scores.shape != (len(true_labels), len(model_classes)):
         raise ValueError("scores must have one column per model class")
+    if not np.isfinite(scores).all() or np.any(scores < 0) or np.any(scores > 1):
+        raise ValueError("scores must contain finite values between zero and one")
 
     class_indices = {label: index for index, label in enumerate(model_classes.tolist())}
     selected: dict[str, dict[str, float | int]] = {}
@@ -196,24 +226,23 @@ def select_alert_thresholds(
         if support == 0:
             raise ValueError(f"No validation examples for alert class: {label}")
 
-        # Thresholds only need to be checked at observed scores because the
-        # predicted alert set is unchanged between adjacent score values.
+        qualifying = []
         for threshold in sorted(np.unique(class_scores).tolist(), reverse=True):
             is_alert = class_scores >= threshold
             true_positive = int(np.logical_and(is_alert, is_positive).sum())
             false_positive = int(np.logical_and(is_alert, ~is_positive).sum())
             false_negative = support - true_positive
             recall = true_positive / support
-            if recall < minimum_recall:
-                continue
             alert_count = true_positive + false_positive
             precision = true_positive / alert_count if alert_count else 0.0
+            if precision < minimum_precision:
+                continue
             f1 = (
                 2 * precision * recall / (precision + recall)
                 if precision + recall
                 else 0.0
             )
-            selected[label] = {
+            qualifying.append({
                 "threshold": float(threshold),
                 "precision": float(precision),
                 "recall": float(recall),
@@ -223,11 +252,13 @@ def select_alert_thresholds(
                 "true_positive_count": true_positive,
                 "false_positive_count": false_positive,
                 "false_negative_count": false_negative,
-            }
-            break
-        else:
-            raise ValueError(
-                f"No threshold for {label} meets minimum recall {minimum_recall}"
+            })
+        if qualifying:
+            selected[label] = max(
+                qualifying,
+                key=lambda result: (
+                    result["recall"], result["precision"], result["threshold"]
+                ),
             )
     return selected
 
@@ -273,46 +304,135 @@ def sha256_file(path: Path) -> str:
 
 
 def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
+    final_report = report_dir / "test_metrics.json"
+    if final_report.exists():
+        raise FileExistsError(
+            f"Fold 5 has already been evaluated: {final_report}; do not retrain or tune from it"
+        )
     rows = read_rows(dataset_root)
     audio_dir = dataset_root / "audio"
     train_rows = [row for row in rows if int(row["fold"]) in TRAIN_FOLDS]
     validation_rows = [row for row in rows if int(row["fold"]) == VALIDATION_FOLD]
-    if len(train_rows) != 192 or len(validation_rows) != 64:
+    expected_train = len(CLASSES) * len(TRAIN_FOLDS) * SAMPLES_PER_CLASS_PER_FOLD
+    expected_validation = len(CLASSES) * SAMPLES_PER_CLASS_PER_FOLD
+    if len(train_rows) != expected_train or len(validation_rows) != expected_validation:
         raise ValueError(
-            f"Expected 192 training and 64 validation rows; got "
-            f"{len(train_rows)} and {len(validation_rows)}"
+            f"Expected {expected_train} training and {expected_validation} validation rows; "
+            f"got {len(train_rows)} and {len(validation_rows)}"
         )
 
-    print("Extracting training features from folds 1-3")
-    x_train = extract_matrix(train_rows, audio_dir)
     y_train = np.asarray([row["category"] for row in train_rows])
-    print("Extracting validation features from fold 4")
-    x_validation = extract_matrix(validation_rows, audio_dir)
     y_validation = np.asarray([row["category"] for row in validation_rows])
 
-    model = RandomForestClassifier(
-        n_estimators=N_ESTIMATORS,
-        random_state=RANDOM_SEED,
-        n_jobs=-1,
+    print("Extracting Random Forest features from folds 1-4")
+    rf_validation_features = extract_matrix(validation_rows, audio_dir)
+    rf_model_path = model_dir / "hearhere_rf.joblib"
+    rf_metadata_path = model_dir / "model_metadata.json"
+    rf_metadata = json.loads(rf_metadata_path.read_text(encoding="utf-8"))
+    rf_model_hash = sha256_file(rf_model_path)
+    expected_rf_hash = rf_metadata.get("model_sha256")
+    if rf_metadata.get("model_file") != "hearhere_rf.joblib":
+        expected_rf_hash = rf_metadata.get("training", {}).get(
+            "random_forest_baseline", {}
+        ).get("model_sha256")
+    if rf_model_hash != expected_rf_hash:
+        raise ValueError("Existing Random Forest model hash does not match its metadata")
+    rf_model = joblib.load(rf_model_path)
+    if set(rf_model.classes_) != set(CLASSES):
+        raise ValueError("Existing Random Forest does not contain all configured classes")
+    rf_scores = rf_model.predict_proba(rf_validation_features)
+    rf_predictions = rf_model.predict(rf_validation_features)
+    rf_metrics, rf_matrix = build_validation_metrics(
+        y_validation.tolist(), rf_predictions.tolist()
     )
-    model.fit(x_train, y_train)
-    predicted = model.predict(x_validation)
-    probabilities = model.predict_proba(x_validation)
-    metrics, matrix = build_validation_metrics(y_validation.tolist(), predicted.tolist())
-    threshold_metrics = select_alert_thresholds(
-        y_validation,
-        probabilities,
-        model.classes_,
+    rf_thresholds = select_alert_thresholds(y_validation, rf_scores, rf_model.classes_)
+
+    print("Loading frozen PANNs CNN14 on CPU")
+    panns_extractor = PannsEmbeddingExtractor(DEFAULT_CACHE_PATH)
+    print("Extracting PANNs embeddings from folds 1-4")
+    panns_train_features = extract_embedding_matrix(train_rows, audio_dir, panns_extractor)
+    panns_validation_features = extract_embedding_matrix(
+        validation_rows, audio_dir, panns_extractor
     )
-    threshold_values = {
-        label: threshold_metrics[label]["threshold"]
-        for label in ALERT_CLASSES
+    panns_model = Pipeline([
+        ("standard_scaler", StandardScaler()),
+        ("logistic_regression", LogisticRegression(**LOGISTIC_REGRESSION_PARAMETERS)),
+    ])
+    panns_model.fit(panns_train_features, y_train)
+    panns_scores = panns_model.predict_proba(panns_validation_features)
+    panns_predictions = panns_model.predict(panns_validation_features)
+    panns_metrics, panns_matrix = build_validation_metrics(
+        y_validation.tolist(), panns_predictions.tolist()
+    )
+    panns_thresholds = select_alert_thresholds(
+        y_validation, panns_scores, panns_model.classes_
+    )
+
+    def comparison_record(predictions, metrics, thresholds, model_name):
+        per_alert = {}
+        alert_recalls = []
+        for label in ALERT_CLASSES:
+            result = thresholds.get(label)
+            alert_recalls.append(float(result["recall"]) if result else 0.0)
+            per_alert[label] = result or {
+                "enabled": False,
+                "reason": "No Fold 4 score threshold reaches 85% precision",
+                "support": int(np.sum(y_validation == label)),
+                "recall": 0.0,
+            }
+            if result:
+                per_alert[label]["enabled"] = True
+        return {
+            "model": model_name,
+            "summary": {
+                key: metrics[key]
+                for key in (
+                    "accuracy", "macro_precision", "macro_recall", "macro_f1",
+                    "weighted_precision", "weighted_recall", "weighted_f1",
+                )
+            },
+            "macro_f1": metrics["macro_f1"],
+            "mean_alert_recall": float(np.mean(alert_recalls)),
+            "alert_classes": per_alert,
+            "per_class": metrics["per_class"],
+            "confusion_matrix": (
+                rf_matrix if model_name == "random_forest" else panns_matrix
+            ).tolist(),
+            "top_class_predictions": predictions.tolist(),
+        }
+
+    candidate_results = {
+        "random_forest": comparison_record(
+            rf_predictions, rf_metrics, rf_thresholds, "random_forest"
+        ),
+        "panns_cnn14_logistic_regression": comparison_record(
+            panns_predictions, panns_metrics, panns_thresholds,
+            "panns_cnn14_logistic_regression",
+        ),
     }
+    winner = max(
+        candidate_results,
+        key=lambda name: (
+            candidate_results[name]["mean_alert_recall"],
+            candidate_results[name]["macro_f1"],
+            name == "random_forest",
+        ),
+    )
+    selected_model = rf_model if winner == "random_forest" else panns_model
+    selected_scores = rf_scores if winner == "random_forest" else panns_scores
+    selected_predictions = rf_predictions if winner == "random_forest" else panns_predictions
+    selected_metrics = rf_metrics if winner == "random_forest" else panns_metrics
+    selected_matrix = rf_matrix if winner == "random_forest" else panns_matrix
+    selected_thresholds = rf_thresholds if winner == "random_forest" else panns_thresholds
+    selected_feature_type = "mfcc" if winner == "random_forest" else "panns_cnn14"
+    selected_model_file = (
+        "hearhere_rf.joblib" if winner == "random_forest" else "hearhere_panns_lr.joblib"
+    )
 
     model_dir.mkdir(parents=True, exist_ok=True)
     report_dir.mkdir(parents=True, exist_ok=True)
-    model_path = model_dir / "hearhere_rf.joblib"
-    joblib.dump(model, model_path)
+    model_path = model_dir / selected_model_file
+    joblib.dump(panns_model, model_dir / "hearhere_panns_lr.joblib")
     created_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     manifest_path = report_dir / "training_manifest.csv"
     write_manifest(manifest_path, rows)
@@ -320,27 +440,41 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     metadata = {
         "schema_version": "1.0",
         "artifact_status": "trained_fold4_validated",
-        "model_version": "hearhere-rf-v1",
-        "model_type": "sklearn.ensemble.RandomForestClassifier",
+        "model_version": (
+            "hearhere-rf-v2" if selected_feature_type == "mfcc" else "hearhere-panns-v2"
+        ),
+        "model_file": selected_model_file,
+        "model_type": (
+            "sklearn.ensemble.RandomForestClassifier"
+            if selected_feature_type == "mfcc"
+            else "sklearn.pipeline.Pipeline(StandardScaler,LogisticRegression)"
+        ),
         "created_at_utc": created_at,
         "model_sha256": sha256_file(model_path),
-        "class_order": list(model.classes_),
+        "class_order": list(selected_model.classes_),
         "important_classes": list(ALERT_CLASSES),
         "feature_extractor": {
-            "entrypoint": "hearhere_audio.features.extract_features_from_file",
+            "type": selected_feature_type,
+            "entrypoint": (
+                "hearhere_audio.features.extract_features_from_file"
+                if selected_feature_type == "mfcc"
+                else "hearhere_audio.panns.extract_embedding_from_file"
+            ),
             "sample_rate_hz": SAMPLE_RATE,
             "channels": 1,
             "window_seconds": WINDOW_SECONDS,
             "short_audio_policy": "zero_pad",
             "long_audio_policy": "reject",
-            "n_mfcc": N_MFCC,
-            "n_fft": N_FFT,
-            "hop_length": HOP_LENGTH,
-            "n_mels": N_MELS,
+            "n_mfcc": N_MFCC if selected_feature_type == "mfcc" else None,
+            "n_fft": N_FFT if selected_feature_type == "mfcc" else None,
+            "hop_length": HOP_LENGTH if selected_feature_type == "mfcc" else None,
+            "n_mels": N_MELS if selected_feature_type == "mfcc" else None,
             "resample_type": RESAMPLE_TYPE,
-            "feature_count": len(FEATURE_ORDER),
-            "feature_order": ",".join(FEATURE_ORDER),
-            "std_ddof": 0,
+            "feature_count": len(FEATURE_ORDER) if selected_feature_type == "mfcc" else EMBEDDING_DIM,
+            "feature_order": ",".join(FEATURE_ORDER) if selected_feature_type == "mfcc" else None,
+            "std_ddof": 0 if selected_feature_type == "mfcc" else None,
+            "backbone": "PANNs CNN14 16 kHz AudioSet" if selected_feature_type == "panns_cnn14" else None,
+            "checkpoint_md5": CHECKPOINT_MD5 if selected_feature_type == "panns_cnn14" else None,
         },
         "dataset": {
             "name": "ESC-50",
@@ -377,7 +511,29 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
         },
         "training": {
             "random_seed": RANDOM_SEED,
-            "parameters": model.get_params(),
+            "random_forest_baseline": {
+                "model_file": "hearhere_rf.joblib",
+                "model_sha256": rf_model_hash,
+                "parameters": rf_model.get_params(),
+                "training_folds": list(TRAIN_FOLDS),
+            },
+            "panns_logistic_regression": {
+                "model_file": "hearhere_panns_lr.joblib",
+                "parameters": LOGISTIC_REGRESSION_PARAMETERS,
+                "pipeline": ["StandardScaler", "LogisticRegression"],
+                "training_folds": list(TRAIN_FOLDS),
+                "embedding_dimension": EMBEDDING_DIM,
+                "checkpoint_source": CHECKPOINT_URL,
+                "checkpoint_md5": CHECKPOINT_MD5,
+                "checkpoint_license": "CC BY 4.0",
+                "checkpoint_attribution": "PANNs by Qiuqiang Kong et al.; Zenodo record 3987831",
+            },
+            "selected_candidate": winner,
+            "selected_parameters": (
+                rf_model.get_params() if selected_feature_type == "mfcc"
+                else LOGISTIC_REGRESSION_PARAMETERS
+            ),
+            "random_seed": RANDOM_SEED,
         },
         "dependency_versions": {
             "python": ".".join(map(str, sys.version_info[:3])),
@@ -387,6 +543,8 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
             "soundfile": importlib.metadata.version("soundfile"),
             "scikit-learn": sklearn.__version__,
             "joblib": joblib.__version__,
+            "torch": importlib.metadata.version("torch"),
+            "torchlibrosa": importlib.metadata.version("torchlibrosa"),
         },
         "evaluation_artifacts": {
             "validation_metrics": "reports/validation_metrics.json",
@@ -394,9 +552,9 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
             "final_test_metrics": "reports/test_metrics.json",
         },
         "alert_policy": {
-            "minimum_recall": MINIMUM_ALERT_RECALL,
-            "selection_objective": "Minimize false alerts subject to the per-class recall constraint",
-            "selection_method": "Highest observed Fold 4 score meeting the minimum recall for each alert class",
+            "minimum_precision": MINIMUM_ALERT_PRECISION,
+            "selection_objective": "Maximize mean recall across all six alert classes, counting disabled classes as zero, subject to at least 85% Fold 4 precision for enabled classes",
+            "selection_method": "For each alert class, maximize recall over observed Fold 4 thresholds that meet minimum precision; disable classes with no qualifying threshold",
         },
     }
     threshold_report = {
@@ -407,15 +565,18 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
             "dataset": "ESC-50",
             "folds": [VALIDATION_FOLD],
         },
-        "score_interpretation": "Uncalibrated Random Forest class score; not a real-world event probability",
+        "score_interpretation": "Uncalibrated classifier score; not a real-world event probability",
         "policy_owner": "backend",
-        "minimum_recall": MINIMUM_ALERT_RECALL,
-        "selection_objective": "Minimize false alerts subject to at least 75% recall for each important class",
-        "selection_method": "For each important class, evaluate unique Fold 4 scores in descending order and select the highest score whose binary recall meets the minimum recall constraint",
-        "recommended_alert_classes": list(ALERT_CLASSES),
-        "minimum_scores": threshold_values,
-        "validation_metrics": threshold_metrics,
-        "notes": "Selected on Fold 4 only. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Fold 5 remains reserved for final evaluation.",
+        "minimum_precision": MINIMUM_ALERT_PRECISION,
+        "selection_objective": "Maximize mean recall across all six alert classes subject to at least 85% precision per enabled class",
+        "selection_method": "For each class, select the observed Fold 4 score threshold with maximum recall among thresholds at or above 85% precision; disable classes with no qualifying threshold",
+        "recommended_alert_classes": [label for label in ALERT_CLASSES if label in selected_thresholds],
+        "disabled_alert_classes": [label for label in ALERT_CLASSES if label not in selected_thresholds],
+        "minimum_scores": {
+            label: selected_thresholds[label]["threshold"] for label in selected_thresholds
+        },
+        "validation_metrics": selected_thresholds,
+        "notes": "Thresholds are selected on Fold 4 only. Use Fold 5 once for final evaluation after model lock; do not rerun or tune from it. B owns alert decisions, preferences, cooldowns, event merging, and acknowledgements. Enabled classes each meet the Fold 4 precision criterion; this does not establish real-world microphone precision.",
     }
     validation_report = {
         "schema_version": "1.0",
@@ -430,7 +591,7 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
         },
         "class_order": list(CLASSES),
         "summary": {
-            key: metrics[key]
+            key: selected_metrics[key]
             for key in (
                 "accuracy",
                 "macro_precision",
@@ -441,23 +602,25 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
                 "weighted_f1",
             )
         },
-        "per_class": metrics["per_class"],
-        "important_sound_classes": metrics["important_sound_classes"],
-        "confusion_matrix": matrix.tolist(),
+        "per_class": selected_metrics["per_class"],
+        "important_sound_classes": selected_metrics["important_sound_classes"],
+        "confusion_matrix": selected_matrix.tolist(),
         "confusion_matrix_axis_order": "rows=true_class,columns=predicted_class; both follow class_order",
-        "thresholds": threshold_values,
-        "threshold_note": "Per-class thresholds selected on Fold 4 to minimize false alerts while retaining at least 75% recall for each important class.",
+        "thresholds": threshold_report["minimum_scores"],
+        "threshold_note": "Per-class thresholds selected on Fold 4 for at least 85% precision; classes without a qualifying threshold are disabled by default.",
+        "model_comparison": candidate_results,
+        "selected_candidate": winner,
     }
 
     write_json(model_dir / "model_metadata.json", metadata)
     write_json(model_dir / "thresholds.json", threshold_report)
     write_json(report_dir / "validation_metrics.json", validation_report)
-    write_confusion_matrix(report_dir / "confusion_matrix.csv", matrix)
+    write_confusion_matrix(report_dir / "confusion_matrix.csv", selected_matrix)
     with (report_dir / "fold4_predictions.csv").open("w", newline="", encoding="utf-8") as output:
         writer = csv.writer(output, lineterminator="\n")
-        writer.writerow(["filename", "true_class", "predicted_class", *model.classes_])
+        writer.writerow(["filename", "true_class", "predicted_class", *selected_model.classes_])
         for row, true_label, predicted_label, scores in zip(
-            validation_rows, y_validation, predicted, probabilities
+            validation_rows, y_validation, selected_predictions, selected_scores
         ):
             writer.writerow(
                 [row["filename"], true_label, predicted_label, *[float(score) for score in scores]]
@@ -468,8 +631,11 @@ def run_training(dataset_root: Path, model_dir: Path, report_dir: Path) -> None:
     print(f"Saved threshold recommendations: {model_dir / 'thresholds.json'}")
     print(f"Saved validation report: {report_dir / 'validation_metrics.json'}")
     print(f"Saved used-data manifest: {manifest_path}")
+    print(f"Selected candidate: {winner}")
+    print(f"Mean alert recall: {candidate_results[winner]['mean_alert_recall']:.3f}")
+    print(f"Macro F1: {selected_metrics['macro_f1']:.3f}")
     print(json.dumps(threshold_report, indent=2))
-    print(json.dumps(metrics, indent=2))
+    print(json.dumps(selected_metrics, indent=2))
 
 
 def main() -> None:

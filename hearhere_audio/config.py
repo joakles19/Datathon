@@ -11,16 +11,27 @@ N_MELS = 128
 RESAMPLE_TYPE = "soxr_hq"
 
 CLASSES = (
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
     "door_wood_knock",
     "engine",
     "glass_breaking",
-    "keyboard_typing",
     "rain",
     "siren",
     "vacuum_cleaner",
     "wind",
 )
-ALERT_CLASSES = ("door_wood_knock", "siren", "glass_breaking")
+# v2 expands the classifier vocabulary while excluding keyboard typing.
+MODEL_VERSION = "hearhere-v2"
+ALERT_CLASSES = (
+    "door_wood_knock",
+    "siren",
+    "glass_breaking",
+    "clock_alarm",
+    "crying_baby",
+    "car_horn",
+)
 
 FEATURE_ORDER = tuple(
     [f"mfcc_{index}_mean" for index in range(N_MFCC)]

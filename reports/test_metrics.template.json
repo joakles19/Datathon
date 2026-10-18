@@ -3,33 +3,40 @@
   "test_fold": 5,
   "sample_count": null,
   "classes": [
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
     "door_wood_knock",
-    "siren",
+    "engine",
     "glass_breaking",
     "rain",
-    "wind",
-    "keyboard_typing",
+    "siren",
     "vacuum_cleaner",
-    "engine"
+    "wind"
   ],
   "metrics": {
     "accuracy": null,
     "macro_f1": null,
     "weighted_f1": null,
     "per_class": {
+      "car_horn": {"precision": null, "recall": null, "f1": null, "support": null},
+      "clock_alarm": {"precision": null, "recall": null, "f1": null, "support": null},
+      "crying_baby": {"precision": null, "recall": null, "f1": null, "support": null},
       "door_wood_knock": {"precision": null, "recall": null, "f1": null, "support": null},
-      "siren": {"precision": null, "recall": null, "f1": null, "support": null},
+      "engine": {"precision": null, "recall": null, "f1": null, "support": null},
       "glass_breaking": {"precision": null, "recall": null, "f1": null, "support": null},
       "rain": {"precision": null, "recall": null, "f1": null, "support": null},
-      "wind": {"precision": null, "recall": null, "f1": null, "support": null},
-      "keyboard_typing": {"precision": null, "recall": null, "f1": null, "support": null},
+      "siren": {"precision": null, "recall": null, "f1": null, "support": null},
       "vacuum_cleaner": {"precision": null, "recall": null, "f1": null, "support": null},
-      "engine": {"precision": null, "recall": null, "f1": null, "support": null}
+      "wind": {"precision": null, "recall": null, "f1": null, "support": null}
     },
     "important_sound_classes": {
       "door_wood_knock": {"precision": null, "recall": null, "f1": null, "support": null},
       "siren": {"precision": null, "recall": null, "f1": null, "support": null},
-      "glass_breaking": {"precision": null, "recall": null, "f1": null, "support": null}
+      "glass_breaking": {"precision": null, "recall": null, "f1": null, "support": null},
+      "clock_alarm": {"precision": null, "recall": null, "f1": null, "support": null},
+      "crying_baby": {"precision": null, "recall": null, "f1": null, "support": null},
+      "car_horn": {"precision": null, "recall": null, "f1": null, "support": null}
     }
   },
   "confusion_matrix_rows_true_columns_predicted": null,

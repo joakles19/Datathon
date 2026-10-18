@@ -1,0 +1,335 @@
+{
+  "artifact_status": "final_fold5_evaluation",
+  "class_order": [
+    "car_horn",
+    "clock_alarm",
+    "crying_baby",
+    "door_wood_knock",
+    "engine",
+    "glass_breaking",
+    "rain",
+    "siren",
+    "vacuum_cleaner",
+    "wind"
+  ],
+  "confusion_matrix": [
+    [
+      8,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      8,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      8,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      8,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      8,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      8,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      7,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      8,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      8,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      7
+    ]
+  ],
+  "confusion_matrix_axis_order": "rows=true_class,columns=predicted_class; both follow class_order",
+  "disabled_alert_classes": [
+    "car_horn"
+  ],
+  "evaluation": {
+    "class_counts": {
+      "car_horn": 8,
+      "clock_alarm": 8,
+      "crying_baby": 8,
+      "door_wood_knock": 8,
+      "engine": 8,
+      "glass_breaking": 8,
+      "rain": 8,
+      "siren": 8,
+      "vacuum_cleaner": 8,
+      "wind": 8
+    },
+    "dataset": "ESC-50",
+    "dataset_metadata_sha256": "ca660da60191a97de289983a05821c9382d852a38a2ba8428980816b68cf6246",
+    "evaluated_at_utc": "2026-10-18T02:49:15.875207Z",
+    "folds": [
+      5
+    ],
+    "sample_count": 80,
+    "split": "reserved_final_test"
+  },
+  "fixed_fold4_threshold_metrics": {
+    "clock_alarm": {
+      "alert_count": 7,
+      "f1": 0.9333333333333333,
+      "false_negative_count": 1,
+      "false_positive_count": 0,
+      "precision": 1.0,
+      "recall": 0.875,
+      "support": 8,
+      "threshold": 0.9808549284934998,
+      "true_positive_count": 7
+    },
+    "crying_baby": {
+      "alert_count": 8,
+      "f1": 1.0,
+      "false_negative_count": 0,
+      "false_positive_count": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8,
+      "threshold": 0.774160623550415,
+      "true_positive_count": 8
+    },
+    "door_wood_knock": {
+      "alert_count": 8,
+      "f1": 1.0,
+      "false_negative_count": 0,
+      "false_positive_count": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8,
+      "threshold": 0.5443681478500366,
+      "true_positive_count": 8
+    },
+    "glass_breaking": {
+      "alert_count": 8,
+      "f1": 1.0,
+      "false_negative_count": 0,
+      "false_positive_count": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8,
+      "threshold": 0.6603043675422668,
+      "true_positive_count": 8
+    },
+    "siren": {
+      "alert_count": 2,
+      "f1": 0.4,
+      "false_negative_count": 6,
+      "false_positive_count": 0,
+      "precision": 1.0,
+      "recall": 0.25,
+      "support": 8,
+      "threshold": 0.9973710775375366,
+      "true_positive_count": 2
+    }
+  },
+  "important_sound_classes": {
+    "car_horn": {
+      "f1": 0.9411764705882353,
+      "precision": 0.8888888888888888,
+      "recall": 1.0,
+      "support": 8
+    },
+    "clock_alarm": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "crying_baby": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "door_wood_knock": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "glass_breaking": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "siren": {
+      "f1": 0.9411764705882353,
+      "precision": 0.8888888888888888,
+      "recall": 1.0,
+      "support": 8
+    }
+  },
+  "model_sha256": "ebab2c16465171c6f8001d820bb148b4036f3b8bdf0e049487ac30d405dfa164",
+  "model_version": "hearhere-panns-v2",
+  "notes": "This report is a single final Fold 5 evaluation. No model or threshold selection used Fold 5. Each class has eight examples; results do not establish real-world microphone accuracy.",
+  "per_class": {
+    "car_horn": {
+      "f1": 0.9411764705882353,
+      "precision": 0.8888888888888888,
+      "recall": 1.0,
+      "support": 8
+    },
+    "clock_alarm": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "crying_baby": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "door_wood_knock": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "engine": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "glass_breaking": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "rain": {
+      "f1": 0.9333333333333333,
+      "precision": 1.0,
+      "recall": 0.875,
+      "support": 8
+    },
+    "siren": {
+      "f1": 0.9411764705882353,
+      "precision": 0.8888888888888888,
+      "recall": 1.0,
+      "support": 8
+    },
+    "vacuum_cleaner": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 8
+    },
+    "wind": {
+      "f1": 0.9333333333333333,
+      "precision": 1.0,
+      "recall": 0.875,
+      "support": 8
+    }
+  },
+  "schema_version": "1.0",
+  "selected_candidate": "panns_cnn14_logistic_regression",
+  "summary": {
+    "accuracy": 0.975,
+    "macro_f1": 0.9749019607843138,
+    "macro_precision": 0.9777777777777779,
+    "macro_recall": 0.975,
+    "weighted_f1": 0.9749019607843138,
+    "weighted_precision": 0.9777777777777779,
+    "weighted_recall": 0.975
+  },
+  "thresholds_sha256": "d6eeb650c301e34fc2be5f83a67f474dda38af43a61131d6002d501330bfe0a1"
+}
