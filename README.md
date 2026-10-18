@@ -4,7 +4,7 @@ HearHere connects the trained audio classifier, FastAPI alert policy, and React 
 
 ## Clone and run a real prediction
 
-Python **3.12** is required for the documented model environment. On Windows, with Python 3.12 installed:
+Python **3.12** is required for the documented model environment. Setup installs the CPU PyTorch/PANNs dependencies and downloads the 359 MB CNN14 checkpoint to `~/.cache/hearhere/panns/`, verifying it against the published Zenodo checksum. The checkpoint is not committed. On Windows, with Python 3.12 installed:
 
 ```powershell
 git clone --branch main --single-branch https://github.com/joakles19/Datathon.git
@@ -15,7 +15,7 @@ py -3.12 scripts/setup_environment.py
 
 If `py -3.12` is unavailable, run `scripts/setup_environment.py` using the full path to your Python 3.12 interpreter. On macOS/Linux, use `python3.12 scripts/setup_environment.py`, then `.venv/bin/python` for subsequent commands.
 
-The model and an attributed test WAV are included. No full dataset download is needed for this smoke test. The supplied example returns `siren` with uncalibrated score `0.8566666666666667`. It is a fold-1 integration example, not an accuracy benchmark. See [sample attribution](examples/README.md).
+The Random Forest model and an attributed test WAV are included. No full dataset download is needed for this smoke test. The supplied example returns `siren` with uncalibrated score `0.8566666666666667`. It is a fold-1 integration example, not an accuracy benchmark. PANNs checkpoint attribution and license are recorded in `hearhere_audio/panns.py`; see [sample attribution](examples/README.md).
 
 ## Run the connected frontend and backend
 
