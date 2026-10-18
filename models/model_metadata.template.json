@@ -2,7 +2,8 @@
   "schema_version": "1.0",
   "artifact_status": "template_pending_training",
   "model_version": null,
-  "model_type": "sklearn.ensemble.RandomForestClassifier",
+  "model_file": null,
+  "model_type": null,
   "created_at_utc": null,
   "model_sha256": null,
   "class_order": [
@@ -26,20 +27,23 @@
     "car_horn"
   ],
   "feature_extractor": {
-    "entrypoint": "hearhere_audio.features.extract_features_from_file",
+    "type": null,
+    "entrypoint": null,
     "sample_rate_hz": 16000,
     "channels": 1,
     "window_seconds": 5,
     "short_audio_policy": "zero_pad",
     "long_audio_policy": "reject",
-    "n_mfcc": 20,
-    "n_fft": 2048,
-    "hop_length": 512,
-    "n_mels": 128,
     "resample_type": "soxr_hq",
-    "feature_count": 40,
-    "feature_order": "mfcc_0_mean..mfcc_19_mean,mfcc_0_std..mfcc_19_std",
-    "std_ddof": 0
+    "feature_count": null,
+    "feature_order": null,
+    "n_mfcc": null,
+    "n_fft": null,
+    "hop_length": null,
+    "n_mels": null,
+    "std_ddof": null,
+    "backbone": null,
+    "checkpoint_md5": null
   },
   "dataset": {
     "name": "ESC-50",
@@ -100,7 +104,25 @@
   },
   "training": {
     "random_seed": null,
-    "parameters": null
+    "selected_candidate": null,
+    "selected_parameters": null,
+    "random_forest_baseline": {
+      "model_file": "hearhere_rf.joblib",
+      "model_sha256": null,
+      "parameters": null,
+      "training_folds": [1, 2, 3]
+    },
+    "panns_logistic_regression": {
+      "model_file": "hearhere_panns_lr.joblib",
+      "parameters": null,
+      "pipeline": ["StandardScaler", "LogisticRegression"],
+      "training_folds": [1, 2, 3],
+      "embedding_dimension": 2048,
+      "checkpoint_source": "https://zenodo.org/records/3987831",
+      "checkpoint_md5": "362fc5ff18f1d6ad2f6d464b45893f2c",
+      "checkpoint_license": "CC BY 4.0",
+      "checkpoint_attribution": "PANNs by Qiuqiang Kong et al.; Zenodo record 3987831"
+    }
   },
   "dependency_versions": null,
   "evaluation_artifacts": {

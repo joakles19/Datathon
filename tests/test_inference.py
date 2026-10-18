@@ -28,7 +28,7 @@ def test_classifier_returns_all_class_scores_and_model_version():
     assert set(prediction["scores"]) == set(classifier.model.classes_)
     assert prediction["label"] == max(prediction["scores"], key=prediction["scores"].get)
     assert prediction["score"] == prediction["scores"][prediction["label"]]
-    assert prediction["model_version"] == "hearhere-rf-v2"
+    assert prediction["model_version"] == classifier.metadata["model_version"]
     assert "keyboard_typing" not in prediction["scores"]
     assert len(prediction["scores"]) == 10
     assert sum(prediction["scores"].values()) == pytest.approx(1.0)
@@ -64,4 +64,25 @@ def test_classifier_rejects_thresholds_from_another_model(tmp_path):
     thresholds_path.write_text(json.dumps(thresholds), encoding="utf-8")
 
     with pytest.raises(ModelArtifactError, match="do not match"):
+        HearHereClassifier(thresholds_path=thresholds_path)
+
+
+def test_classifier_rejects_missing_disabled_alert_class(tmp_path):
+    thresholds = json.loads(DEFAULT_THRESHOLDS_PATH.read_text(encoding="utf-8"))
+    thresholds["disabled_alert_classes"] = []
+    thresholds_path = tmp_path / "thresholds.json"
+    thresholds_path.write_text(json.dumps(thresholds), encoding="utf-8")
+
+    with pytest.raises(ModelArtifactError, match="Disabled alert classes"):
+        HearHereClassifier(thresholds_path=thresholds_path)
+
+
+def test_classifier_rejects_threshold_without_qualifying_precision(tmp_path):
+    thresholds = json.loads(DEFAULT_THRESHOLDS_PATH.read_text(encoding="utf-8"))
+    label = thresholds["recommended_alert_classes"][0]
+    thresholds["validation_metrics"][label]["precision"] = 0.84
+    thresholds_path = tmp_path / "thresholds.json"
+    thresholds_path.write_text(json.dumps(thresholds), encoding="utf-8")
+
+    with pytest.raises(ModelArtifactError, match="inconsistent"):
         HearHereClassifier(thresholds_path=thresholds_path)

@@ -45,8 +45,8 @@ ALERT_SETTINGS = {
 }
 PREFS = {
     label: {
-        "enabled": True,
-        "threshold": FOLD4[label],
+        "enabled": label in classifier.thresholds["recommended_alert_classes"],
+        "threshold": FOLD4.get(label, 1.0),
         **ALERT_SETTINGS[label],
     }
     for label in ALERT_CLASSES

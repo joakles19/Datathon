@@ -18,7 +18,7 @@
 import { toWavWindows } from './wav.js';
 
 export const DEFAULT_API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-export const EXPECTED_MODEL_VERSION = 'hearhere-rf-v2';
+export const EXPECTED_MODEL_VERSION = 'hearhere-panns-v2';
 export const WAV_OPTIONS = { sampleRate: 16000, channels: 1 };
 
 const base = api => api.replace(/\/+$/, '');

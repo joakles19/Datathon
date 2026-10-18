@@ -1,13 +1,13 @@
 # HearHere
 
-HearHere connects the trained audio classifier, FastAPI alert policy, and React interface. A2's predictor, JSON CLI and API client are also available for diagnostics and service-to-service use. Model training and Fold 4 threshold selection remain A1's responsibility.
+HearHere connects the selected audio classifier, FastAPI alert policy, and React interface. The active model uses frozen PANNs CNN14 embeddings with a standardized Logistic Regression head, selected against the existing Random Forest on ESC-50 Fold 4.
 
 ## Clone and run a real prediction
 
 Python **3.12** is required for the documented model environment. Setup installs the CPU PyTorch/PANNs dependencies and downloads the 359 MB CNN14 checkpoint to `~/.cache/hearhere/panns/`, verifying it against the published Zenodo checksum. The checkpoint is not committed. On Windows, with Python 3.12 installed:
 
 ```powershell
-git clone --branch main --single-branch https://github.com/joakles19/Datathon.git
+git clone --branch dev --single-branch https://github.com/joakles19/Datathon.git
 cd Datathon
 py -3.12 scripts/setup_environment.py
 .\.venv\Scripts\python.exe -m hearhere_audio examples/1-31482-A-42.wav --pretty
@@ -15,7 +15,7 @@ py -3.12 scripts/setup_environment.py
 
 If `py -3.12` is unavailable, run `scripts/setup_environment.py` using the full path to your Python 3.12 interpreter. On macOS/Linux, use `python3.12 scripts/setup_environment.py`, then `.venv/bin/python` for subsequent commands.
 
-The Random Forest model and an attributed test WAV are included. No full dataset download is needed for this smoke test. The supplied example returns `siren` with uncalibrated score `0.8566666666666667`. It is a fold-1 integration example, not an accuracy benchmark. PANNs checkpoint attribution and license are recorded in `hearhere_audio/panns.py`; see [sample attribution](examples/README.md).
+The selected classifier and an attributed test WAV are included. Setup verifies the PANNs checkpoint before use; no full dataset download is needed for this smoke test. The supplied example returns `siren` with uncalibrated score about `0.998`. It is a fold-1 integration example, not an accuracy benchmark. PANNs checkpoint attribution and license are recorded in `hearhere_audio/panns.py`; see [sample attribution](examples/README.md).
 
 ## Run the connected frontend and backend
 
@@ -66,7 +66,7 @@ This covers audio features, model loading and inference, the HTTP backend, and t
 - [LinuxONE loading guide](docs/linuxone.md)
 - [A1 parity confirmation](docs/A1_parity_confirmation.json)
 - [Local HTTP integration evidence](docs/classify_integration_verification.json)
-- [A1 model artifact contract](docs/model-artifacts.md)
+- [Model comparison and artifact contract](docs/model-artifacts.md)
 - [A1 workflow README retained for reference](docs/A1_model_workflow.md)
 
 Local virtual environments, credentials, downloaded datasets, recordings, runtime databases and logs are excluded from Git. LinuxONE execution and a shared reachable API remain deployment checks for D.

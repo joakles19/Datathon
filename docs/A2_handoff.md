@@ -1,10 +1,10 @@
 # A2 handoff to B, D and A1
 
-## Current status — 17 October 2026
+## Current status — 18 October 2026
 
-The v2 fold-1 sample reference is recorded in `tests/sample_reference.json`, including the model/WAV hashes, 40-value feature vector and ten class scores. It is an integration reference, not a held-out accuracy measurement.
+The v2 fold-1 sample reference is recorded in `tests/sample_reference.json`, including the model/WAV hashes, 2048-value PANNs embedding and ten class scores. It is an integration reference, not a held-out accuracy measurement.
 
-The `main` branch now includes the real-inference FastAPI service and React client. **The API contract in `classify_api.md` supersedes the earlier placeholder-replacement instructions below for team integration.** Use the browser client, `ClassifyClient`, or `scripts/classify_api.py` to consume `POST /classify`. Preserve `predicted_label`, policy-selected `label`, `confidence = scores[label]`, all scores and server actions. The backend owns alert policy and event handling; the browser and API client do not retrain the model or select thresholds.
+The `dev` branch includes the real-inference FastAPI service, React client and Fold 4-selected PANNs model. **The API contract in `classify_api.md` supersedes the earlier placeholder-replacement instructions below for team integration.** Use the browser client, `ClassifyClient`, or `scripts/classify_api.py` to consume `POST /classify`. Preserve `predicted_label`, policy-selected `label`, `confidence = scores[label]`, all scores and server actions. The backend owns alert policy and event handling; the browser and API client do not retrain the model or select thresholds.
 
 ## Files and ownership
 
@@ -30,7 +30,7 @@ from hearhere_audio.predict import AudioPredictor, ModelLoadError, PredictionErr
 from hearhere_audio.backend_adapter import predict_label_score
 
 # Create in the backend's startup lifecycle, with explicit artifact paths.
-predictor = AudioPredictor("models/hearhere_rf.joblib", "models/model_metadata.json")
+predictor = AudioPredictor(metadata_path="models/model_metadata.json")
 
 def predict(audio_path):
     return predict_label_score(audio_path, predictor)
@@ -46,13 +46,13 @@ Use `examples/1-31482-A-42.wav`. SHA256:
 e4c640a001c2abe808389c90b90ba7084fb1922d58235e3ec95c18c4afb4ef5c
 ```
 
-The v2 reference is `tests/sample_reference.json`: all 40 feature values, all ten scores, model version, model checksum and WAV checksum. It is not held-out evaluation.
+The v2 reference is `tests/sample_reference.json`: all 2048 PANNs embedding values, all ten scores, model version, model checksum and WAV checksum. It is not held-out evaluation.
 
-Run the same shared extractor and model on A1's environment and compare features with `rtol=1e-5, atol=1e-4`. The model-score comparison target for the recorded sample is absolute tolerance `1e-12`. If feature/platform differences lead to a tree decision changing, investigate the dependencies and preprocessing before changing the reference or tolerance.
+Run the same shared preprocessing, PANNs embedding and model on A1's environment and compare embeddings with `rtol=1e-5, atol=1e-4`. The model-score comparison target for the recorded sample is absolute tolerance `1e-12`. If platform differences move embeddings or scores outside tolerance, investigate dependencies and preprocessing before changing the reference or tolerance.
 
-Expected A2 sample prediction: `siren`, model score `0.8566666666666667`.
+Expected selected-model sample prediction: `siren`, uncalibrated model score `0.9980500936508179`.
 
-The latest `ai_david` branch now includes the training manifest, validation metrics, threshold artifact and updated metadata. Its predictor retains the same model checksum. The published A2 branch inherits these A1 files unchanged. The path for final-test metrics in metadata does not prove Fold 5 has been run.
+The `dev` branch includes the training manifest, Fold 4 comparison, threshold artifact and selected-model metadata. Fold 5 was evaluated once after the model and thresholds were locked; see `reports/test_metrics.json`. Do not rerun Fold 5 or tune from it. LinuxONE runtime and inference remain unverified deployment gates.
 
 ## Timing and evidence
 
@@ -65,10 +65,10 @@ The latest `ai_david` branch now includes the training manifest, validation metr
 
 ## Acceptance checklist
 
-- [x] A1 confirms sample features and scores against the supplied reference (user-relayed report, 17 October 2026).
+- [x] The selected PANNs embedding and model scores match the committed local sample reference in the Python test suite.
 - [x] B/A1 source now has real inference at `POST /classify` on `ai_david` (source inspected).
 - [ ] Obtain B/D's running service URL and test an upload against that deployment.
 - [ ] D installs supported packages and loads the saved artifact on LinuxONE.
 - [ ] D runs the same WAV and records any differences from the reference.
 - [ ] E measures realistic noise conditions, false alerts and capture-to-alert latency.
-- [ ] A1/E perform final Fold 5 evaluation at the agreed model-freeze point.
+- [x] Fold 5 final evaluation was run once after model freeze and recorded in `reports/test_metrics.json`; do not rerun or tune from it.

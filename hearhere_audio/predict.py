@@ -1,4 +1,4 @@
-"""Validated inference using A1's saved model and canonical MFCC extractor."""
+"""Validated inference using the selected HearHere model and its feature path."""
 
 from __future__ import annotations
 
@@ -15,11 +15,19 @@ from librosa.util.exceptions import ParameterError
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.exceptions import InconsistentVersionWarning
+from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 import soundfile as sf
 
 from . import config
 from .features import AudioProcessingError, extract_features_from_file
+from .panns import (
+    EMBEDDING_DIM,
+    DEFAULT_CACHE_PATH,
+    PannsEmbeddingExtractor,
+    PannsError,
+    extract_embedding_from_file,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -57,8 +65,11 @@ def _read_metadata(path: Path) -> dict:
     version = metadata.get("model_version")
     if not isinstance(version, str) or not version.strip():
         raise ModelLoadError("Metadata must contain a non-empty model_version")
-    if metadata.get("model_type") != "sklearn.ensemble.RandomForestClassifier":
-        raise ModelLoadError("Metadata must declare sklearn.ensemble.RandomForestClassifier")
+    if metadata.get("model_type") not in {
+        "sklearn.ensemble.RandomForestClassifier",
+        "sklearn.pipeline.Pipeline(StandardScaler,LogisticRegression)",
+    }:
+        raise ModelLoadError("Metadata declares an unsupported classifier type")
     digest = metadata.get("model_sha256")
     if not isinstance(digest, str) or re.fullmatch(r"[0-9a-fA-F]{64}", digest) is None:
         raise ModelLoadError("Metadata must contain a 64-character model_sha256")
@@ -70,22 +81,39 @@ def _read_metadata(path: Path) -> dict:
     feature = metadata.get("feature_extractor")
     if not isinstance(feature, dict):
         raise ModelLoadError("Metadata must contain feature_extractor settings")
-    expected = {
-        "entrypoint": "hearhere_audio.features.extract_features_from_file",
-        "channels": 1,
-        "sample_rate_hz": config.SAMPLE_RATE,
-        "window_seconds": config.WINDOW_SECONDS,
-        "feature_count": len(config.FEATURE_ORDER),
-        "feature_order": ",".join(config.FEATURE_ORDER),
-        "n_mfcc": config.N_MFCC,
-        "n_fft": config.N_FFT,
-        "hop_length": config.HOP_LENGTH,
-        "n_mels": config.N_MELS,
-        "resample_type": config.RESAMPLE_TYPE,
-        "short_audio_policy": "zero_pad",
-        "long_audio_policy": "reject",
-        "std_ddof": 0,
-    }
+    feature_type = feature.get("type", "mfcc")
+    if feature_type == "mfcc":
+        expected = {
+            "entrypoint": "hearhere_audio.features.extract_features_from_file",
+            "channels": 1,
+            "sample_rate_hz": config.SAMPLE_RATE,
+            "window_seconds": config.WINDOW_SECONDS,
+            "feature_count": len(config.FEATURE_ORDER),
+            "feature_order": ",".join(config.FEATURE_ORDER),
+            "n_mfcc": config.N_MFCC,
+            "n_fft": config.N_FFT,
+            "hop_length": config.HOP_LENGTH,
+            "n_mels": config.N_MELS,
+            "resample_type": config.RESAMPLE_TYPE,
+            "short_audio_policy": "zero_pad",
+            "long_audio_policy": "reject",
+            "std_ddof": 0,
+        }
+    elif feature_type == "panns_cnn14":
+        expected = {
+            "entrypoint": "hearhere_audio.panns.extract_embedding_from_file",
+            "channels": 1,
+            "sample_rate_hz": config.SAMPLE_RATE,
+            "window_seconds": config.WINDOW_SECONDS,
+            "feature_count": EMBEDDING_DIM,
+            "resample_type": config.RESAMPLE_TYPE,
+            "short_audio_policy": "zero_pad",
+            "long_audio_policy": "reject",
+            "backbone": "PANNs CNN14 16 kHz AudioSet",
+            "checkpoint_md5": "362fc5ff18f1d6ad2f6d464b45893f2c",
+        }
+    else:
+        raise ModelLoadError("Metadata declares an unsupported feature extractor")
     for key, value in expected.items():
         if feature.get(key) != value:
             raise ModelLoadError(f"Metadata feature_extractor.{key} does not match the shared feature code")
@@ -101,7 +129,7 @@ class AudioPredictor:
 
     def __init__(
         self,
-        model_path: str | Path = DEFAULT_MODEL_PATH,
+        model_path: str | Path | None = None,
         metadata_path: str | Path = DEFAULT_METADATA_PATH,
         *,
         max_audio_bytes: int = DEFAULT_MAX_AUDIO_BYTES,
@@ -109,9 +137,14 @@ class AudioPredictor:
         if isinstance(max_audio_bytes, bool) or not isinstance(max_audio_bytes, int) or max_audio_bytes <= 0:
             raise ValueError("max_audio_bytes must be a positive integer")
         self.max_audio_bytes = max_audio_bytes
-        self.model_path = Path(model_path)
         self.metadata_path = Path(metadata_path)
         self.metadata = _read_metadata(self.metadata_path)
+        self.feature_type = self.metadata["feature_extractor"].get("type", "mfcc")
+        self.model_path = Path(model_path) if model_path is not None else DEFAULT_MODEL_PATH
+        metadata_model_path = self.metadata.get("model_file")
+        if model_path is None or model_path == DEFAULT_MODEL_PATH:
+            if isinstance(metadata_model_path, str):
+                self.model_path = self.metadata_path.parent / metadata_model_path
         try:
             with self.model_path.open("rb") as artifact:
                 digest = hashlib.file_digest(artifact, "sha256").hexdigest()
@@ -127,20 +160,31 @@ class AudioPredictor:
             raise ModelLoadError("scikit-learn version differs from the saved model; install A1's recorded version") from exc
         except Exception as exc:
             raise ModelLoadError(f"Could not load model: {self.model_path}: {exc}") from exc
-        if not isinstance(self.model, RandomForestClassifier):
-            raise ModelLoadError("Loaded artifact is not a RandomForestClassifier")
+        if self.metadata["model_type"] == "sklearn.ensemble.RandomForestClassifier":
+            if not isinstance(self.model, RandomForestClassifier):
+                raise ModelLoadError("Loaded artifact is not a RandomForestClassifier")
+        elif not isinstance(self.model, Pipeline):
+            raise ModelLoadError("Loaded PANNs classifier is not a sklearn Pipeline")
         try:
             check_is_fitted(self.model)
         except Exception as exc:
-            raise ModelLoadError("Loaded Random Forest is not fitted") from exc
-        if getattr(self.model, "n_features_in_", None) != len(config.FEATURE_ORDER):
-            raise ModelLoadError("Loaded model must expect 40 MFCC features")
-        if getattr(self.model, "n_outputs_", None) != 1:
+            raise ModelLoadError("Loaded classifier is not fitted") from exc
+        expected_features = len(config.FEATURE_ORDER) if self.feature_type == "mfcc" else EMBEDDING_DIM
+        if getattr(self.model, "n_features_in_", None) != expected_features:
+            raise ModelLoadError(f"Loaded model must expect {expected_features} features")
+        if isinstance(self.model, RandomForestClassifier) and getattr(self.model, "n_outputs_", None) != 1:
             raise ModelLoadError("Loaded model must be a single-output classifier")
         self.classes = tuple(str(c) for c in self.model.classes_)
         if list(self.classes) != self.metadata["class_order"]:
             raise ModelLoadError("Model class order differs from metadata class_order")
         self.model_version = self.metadata["model_version"]
+        self.panns_extractor = None
+        if self.feature_type == "panns_cnn14":
+            checkpoint_path = self.metadata.get("panns_checkpoint_path") or DEFAULT_CACHE_PATH
+            try:
+                self.panns_extractor = PannsEmbeddingExtractor(checkpoint_path)
+            except PannsError as exc:
+                raise ModelLoadError(str(exc)) from exc
 
     def _validate_wav(self, audio_path: str | Path) -> Path:
         path = Path(audio_path)
@@ -178,15 +222,23 @@ class AudioPredictor:
         start = time.perf_counter()
         path = self._validate_wav(audio_path)
         try:
-            features = extract_features_from_file(path)
+            if self.feature_type == "panns_cnn14":
+                features = extract_embedding_from_file(path, self.panns_extractor)
+            else:
+                features = extract_features_from_file(path)
         except AudioProcessingError as exc:
             # librosa can reject NaN/Inf before A1's prepare_audio checks them.
             # Keep A1's extractor unchanged and expose the specific input error.
             if isinstance(exc.__cause__, ParameterError) and "not finite" in str(exc.__cause__).lower():
                 raise AudioProcessingError("Audio contains non-finite sample values") from exc
             raise
-        if features.shape != (40,) or not np.isfinite(features).all():
-            raise AudioProcessingError("Shared extractor must return 40 finite features")
+        except PannsError as exc:
+            if isinstance(exc.__cause__, ParameterError) and "not finite" in str(exc.__cause__).lower():
+                raise AudioProcessingError("Audio contains non-finite sample values") from exc
+            raise AudioProcessingError(str(exc)) from exc
+        expected_features = len(config.FEATURE_ORDER) if self.feature_type == "mfcc" else EMBEDDING_DIM
+        if features.shape != (expected_features,) or not np.isfinite(features).all():
+            raise AudioProcessingError(f"Shared extractor must return {expected_features} finite features")
         try:
             probabilities = np.asarray(self.model.predict_proba(features.reshape(1, -1)), dtype=np.float64)
         except Exception as exc:
@@ -212,7 +264,7 @@ class AudioPredictor:
 
 def predict_file(
     audio_path: str | Path,
-    model_path: str | Path = DEFAULT_MODEL_PATH,
+    model_path: str | Path | None = None,
     metadata_path: str | Path = DEFAULT_METADATA_PATH,
 ) -> PredictionResult:
     """One-shot convenience function; services should reuse AudioPredictor instead."""

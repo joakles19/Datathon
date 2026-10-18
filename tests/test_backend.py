@@ -35,7 +35,10 @@ def test_health_reports_loaded_model():
     response = TestClient(backend.app).get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "model_version": "hearhere-rf-v2"}
+    assert response.json() == {
+        "status": "ok",
+        "model_version": backend.classifier.metadata["model_version"],
+    }
 
 
 def test_classify_uses_important_class_score_even_if_top_class_is_ordinary(monkeypatch):
@@ -43,6 +46,8 @@ def test_classify_uses_important_class_score_even_if_top_class_is_ordinary(monke
     monkeypatch.setattr(backend, "db", database)
     monkeypatch.setattr(backend, "last_alert", {})
     monkeypatch.setattr(backend, "snoozed_until", {})
+    monkeypatch.setitem(backend.PREFS["siren"], "enabled", True)
+    monkeypatch.setitem(backend.PREFS["siren"], "threshold", 0.3)
     scores = {
         "door_wood_knock": 0.08,
         "car_horn": 0.01,
@@ -138,6 +143,8 @@ def test_each_configured_alert_class_can_trigger_alert(monkeypatch, alert_class)
     database = FakeDatabase()
     monkeypatch.setattr(backend, "db", database)
     monkeypatch.setattr(backend, "last_alert", {})
+    monkeypatch.setitem(backend.PREFS[alert_class], "enabled", True)
+    monkeypatch.setitem(backend.PREFS[alert_class], "threshold", 0.7)
     threshold = backend.PREFS[alert_class]["threshold"]
     scores = {label: 0.01 for label in backend.classifier.model.classes_}
     scores[alert_class] = min(0.99, threshold + 0.05)
@@ -162,6 +169,15 @@ def test_each_configured_alert_class_can_trigger_alert(monkeypatch, alert_class)
     assert payload["action"] == "alert"
     assert payload["confidence"] == scores[alert_class]
     assert database.calls[0][1][1] == alert_class
+
+
+def test_fold4_nonqualifying_alert_is_disabled_but_remains_a_model_output(monkeypatch):
+    disabled = backend.classifier.thresholds["disabled_alert_classes"]
+    if not disabled:
+        pytest.skip("selected model has no disabled alert classes")
+    label = disabled[0]
+    assert label in backend.classifier.model.classes_
+    assert backend.PREFS[label]["enabled"] is False
 
 
 def test_classify_rejects_oversized_upload(monkeypatch):
@@ -190,7 +206,7 @@ def test_classify_runs_loaded_model_on_uploaded_wav(monkeypatch):
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["model_version"] == "hearhere-rf-v2"
+    assert payload["model_version"] == backend.classifier.metadata["model_version"]
     assert set(payload["scores"]) == set(backend.classifier.model.classes_)
     assert sum(payload["scores"].values()) == pytest.approx(1.0)
 
@@ -240,6 +256,9 @@ def test_live_monitor_confirms_same_alert_class_in_two_of_three_windows(monkeypa
 def test_live_monitor_requires_matching_class_and_increasing_window_indices(monkeypatch):
     score_state = {"class": "door_wood_knock"}
     monkeypatch.setattr(backend, "monitor_windows", backend.OrderedDict())
+    for label in ("door_wood_knock", "siren"):
+        monkeypatch.setitem(backend.PREFS[label], "enabled", True)
+        monkeypatch.setitem(backend.PREFS[label], "threshold", 0.7)
     monkeypatch.setattr(
         backend.classifier,
         "predict_bytes",

@@ -23,11 +23,11 @@ Live microphone monitoring enables browser noise suppression and automatic gain 
 ```
 POST {api}/classify  multipart/form-data, file field "file"
 -> { "label": "siren", "predicted_label": "siren", "confidence": 0.86,
-     "scores": { "siren": 0.86, "...": 0.02 }, "model_version": "hearhere-rf-v2",
+     "scores": { "siren": 0.86, "...": 0.02 }, "model_version": "hearhere-panns-v2",
      "action": "alert", "priority": "high", "message": "Siren detected",
      "event_id": 17, "processing_ms": 18.8 }
 
-GET  {api}/health    -> { "status": "ok", "model_version": "hearhere-rf-v2" }
+GET  {api}/health    -> { "status": "ok", "model_version": "hearhere-panns-v2" }
 ```
 
 Notes for the backend:

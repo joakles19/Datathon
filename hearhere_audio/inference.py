@@ -9,7 +9,14 @@ import joblib
 import numpy as np
 
 from .config import ALERT_CLASSES, CLASSES, FEATURE_ORDER
-from .features import extract_features_from_bytes
+from .features import AudioProcessingError, extract_features_from_bytes
+from .panns import (
+    EMBEDDING_DIM,
+    DEFAULT_CACHE_PATH,
+    PannsEmbeddingExtractor,
+    PannsError,
+    extract_embedding_from_bytes,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +43,9 @@ class HearHereClassifier:
         self.thresholds_path = Path(thresholds_path)
         self.metadata = self._read_json(self.metadata_path)
         self.thresholds = self._read_json(self.thresholds_path)
+        metadata_model_path = self.metadata.get("model_file")
+        if model_path == DEFAULT_MODEL_PATH and isinstance(metadata_model_path, str):
+            self.model_path = self.metadata_path.parent / metadata_model_path
         if not self.model_path.is_file():
             raise ModelArtifactError(f"Trained model not found: {self.model_path}")
         model_hash = hashlib.sha256(self.model_path.read_bytes()).hexdigest()
@@ -43,6 +53,13 @@ class HearHereClassifier:
             raise ModelArtifactError("Model file hash does not match model_metadata.json")
         self.model = self._load_model()
         self._validate_artifacts()
+        self.panns_extractor = None
+        if self.metadata.get("feature_extractor", {}).get("type", "mfcc") == "panns_cnn14":
+            checkpoint_path = self.metadata.get("panns_checkpoint_path") or DEFAULT_CACHE_PATH
+            try:
+                self.panns_extractor = PannsEmbeddingExtractor(checkpoint_path)
+            except PannsError as exc:
+                raise ModelArtifactError(str(exc)) from exc
 
     @staticmethod
     def _read_json(path: Path) -> dict[str, Any]:
@@ -68,37 +85,62 @@ class HearHereClassifier:
         if self.thresholds.get("model_version") != self.metadata.get("model_version"):
             raise ModelArtifactError("Thresholds do not match the loaded model version")
         feature_extractor = self.metadata.get("feature_extractor", {})
-        if feature_extractor.get("feature_count") != len(FEATURE_ORDER):
+        feature_type = feature_extractor.get("type", "mfcc")
+        expected_features = len(FEATURE_ORDER) if feature_type == "mfcc" else (
+            EMBEDDING_DIM if feature_type == "panns_cnn14" else None
+        )
+        if expected_features is None:
+            raise ModelArtifactError("Model metadata has an unsupported feature extractor")
+        if feature_extractor.get("feature_count") != expected_features:
             raise ModelArtifactError("Model metadata feature count does not match the extractor")
-        if feature_extractor.get("feature_order") != ",".join(FEATURE_ORDER):
+        if feature_type == "mfcc" and feature_extractor.get("feature_order") != ",".join(FEATURE_ORDER):
             raise ModelArtifactError("Model feature order does not match the extractor")
+        if feature_type == "panns_cnn14" and feature_extractor.get("checkpoint_md5") != "362fc5ff18f1d6ad2f6d464b45893f2c":
+            raise ModelArtifactError("PANNs checkpoint does not match the approved upstream release")
         if tuple(self.model.classes_) != tuple(self.metadata.get("class_order", ())):
             raise ModelArtifactError("Model classes do not match model_metadata.json")
         if set(self.model.classes_) != set(CLASSES):
             raise ModelArtifactError("Model must contain all configured sound classes")
-        if getattr(self.model, "n_features_in_", None) != len(FEATURE_ORDER):
+        if getattr(self.model, "n_features_in_", None) != expected_features:
             raise ModelArtifactError("Model feature count does not match the extractor")
-        if tuple(self.thresholds.get("recommended_alert_classes", ())) != ALERT_CLASSES:
-            raise ModelArtifactError("Threshold artifact does not list the expected alert classes")
         configured_scores = self.thresholds.get("minimum_scores", {})
-        if set(configured_scores) != set(ALERT_CLASSES):
-            raise ModelArtifactError("Threshold artifact must define every important sound")
+        recommended_classes = tuple(self.thresholds.get("recommended_alert_classes", ()))
+        if not set(recommended_classes).issubset(ALERT_CLASSES):
+            raise ModelArtifactError("Threshold artifact lists an unknown alert class")
+        if set(configured_scores) != set(recommended_classes):
+            raise ModelArtifactError("Threshold scores must match qualifying alert classes")
+        if set(self.thresholds.get("disabled_alert_classes", ())) != set(ALERT_CLASSES) - set(recommended_classes):
+            raise ModelArtifactError("Disabled alert classes do not match the threshold recommendations")
         if not all(
-            isinstance(score, (int, float)) and 0 <= score <= 1
+            isinstance(score, (int, float)) and np.isfinite(score) and 0 <= score <= 1
             for score in configured_scores.values()
         ):
             raise ModelArtifactError("Alert thresholds must be numeric scores between 0 and 1")
-        if self.thresholds.get("minimum_recall") != 0.75:
-            raise ModelArtifactError("Threshold artifact has an unexpected minimum recall")
+        if self.thresholds.get("minimum_precision") != 0.85:
+            raise ModelArtifactError("Threshold artifact has an unexpected minimum precision")
         validation_metrics = self.thresholds.get("validation_metrics", {})
         for label, threshold in configured_scores.items():
             result = validation_metrics.get(label, {})
-            if result.get("threshold") != threshold or result.get("recall", 0) < 0.75:
+            if (
+                result.get("threshold") != threshold
+                or result.get("precision", 0) < 0.85
+                or result.get("recall", 0) < 0
+                or result.get("support", 0) <= 0
+            ):
                 raise ModelArtifactError(f"Threshold metrics are inconsistent for {label}")
 
     def predict_bytes(self, audio_bytes: bytes) -> dict[str, Any]:
         """Return the top class and scores for all configured model classes."""
-        features = extract_features_from_bytes(audio_bytes).reshape(1, -1)
+        feature_type = self.metadata.get("feature_extractor", {}).get("type", "mfcc")
+        if feature_type == "panns_cnn14":
+            try:
+                features = extract_embedding_from_bytes(
+                    audio_bytes, self.panns_extractor
+                ).reshape(1, -1)
+            except PannsError as exc:
+                raise AudioProcessingError(str(exc)) from exc
+        else:
+            features = extract_features_from_bytes(audio_bytes).reshape(1, -1)
         scores = self.model.predict_proba(features)[0]
         score_by_class = {
             label: float(score)

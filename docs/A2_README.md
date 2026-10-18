@@ -1,8 +1,8 @@
 # HearHere — A2 inference delivery
 
-Run A1's saved ten-class v2 Random Forest on WAV recordings and return class scores. A2 supplies a persistent predictor, a one-shot function, a JSON CLI and a tuple adapter for B. Training and MFCC extraction remain A1's responsibility.
+Run the selected ten-class HearHere model on WAV recordings and return class scores. The active candidate uses frozen PANNs CNN14 embeddings with a standardized Logistic Regression head; the existing Random Forest remains available as the comparison baseline. A2 supplies a persistent predictor, a one-shot function, a JSON CLI and a tuple adapter for B.
 
-**Current integration status:** The `main` branch includes the frontend, backend and validated model. The browser sends WAV windows to `POST /classify`; the Python API consumer below remains available for command-line integration and diagnostics. See `docs/classify_api.md` for the current response contract.
+**Current integration status:** The `dev` branch includes the frontend, backend and Fold 4-selected PANNs model. The browser sends WAV windows to `POST /classify`; the Python API consumer below remains available for command-line integration and diagnostics. See `docs/classify_api.md` for the current response contract.
 
 ## Consume the shared backend
 
@@ -23,18 +23,20 @@ Use Python **3.12** for this handoff. A1 recorded 3.12.3; A2 was tested with 3.1
 & 'C:\path\to\Python312\python.exe' scripts/setup_environment.py
 ```
 
-`requirements.txt` records A1's six named library versions plus the soxr/numba versions used by A2. `docs/a2-tested-environment.txt` records the complete Windows review environment; it is evidence, not a guarantee that all packages have LinuxONE wheels.
+`requirements.txt` records the pinned CPU PyTorch/PANNs runtime and the shared audio stack. `docs/a2-tested-environment.txt` records the complete Windows review environment; it is evidence, not a guarantee that all packages have LinuxONE wheels.
 
 Keep these A1 artifacts together:
 
 ```text
 hearhere_audio/config.py
 hearhere_audio/features.py
+hearhere_audio/panns.py
 models/hearhere_rf.joblib
+models/hearhere_panns_lr.joblib
 models/model_metadata.json
 ```
 
-The predictor checks the model's SHA256 against its metadata, classes/order, estimator type, fitted state and feature settings. Only load trusted team model artifacts. A checksum verifies a matching pair; it is not a signature. A different scikit-learn artifact version raises a clear loading error.
+The predictor checks the selected model's SHA256 against its metadata, classes/order, estimator type, fitted state and feature settings. PANNs inference also requires the verified checkpoint in the local cache created by setup. Only load trusted team model artifacts. A checksum verifies a matching pair; it is not a signature. A different scikit-learn artifact version raises a clear loading error.
 
 ## Classify a WAV
 
@@ -47,7 +49,7 @@ The supplied fold-1 sample is included under `examples/` for integration checks 
 Alternative entry point:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/predict.py 'example.wav' --model models/hearhere_rf.joblib --metadata models/model_metadata.json --pretty
+.\.venv\Scripts\python.exe scripts/predict.py 'example.wav' --metadata models/model_metadata.json --pretty
 ```
 
 Successful stdout is JSON with exactly:
@@ -55,20 +57,20 @@ Successful stdout is JSON with exactly:
 ```json
 {
   "predicted_class": "siren",
-  "model_score": 0.8566666666666667,
+  "model_score": 0.9980500936508179,
   "scores": {
-    "car_horn": 0.01,
-    "clock_alarm": 0.023333333333333334,
-    "crying_baby": 0.02666666666666667,
-    "door_wood_knock": 0.006666666666666667,
-    "engine": 0.01,
-    "glass_breaking": 0.013333333333333334,
-    "rain": 0.0,
-    "siren": 0.8666666666666667,
-    "vacuum_cleaner": 0.013333333333333334,
-    "wind": 0.03
+    "car_horn": 0.0005899363313801587,
+    "clock_alarm": 0.00022119721688795835,
+    "crying_baby": 0.0005849687149748206,
+    "door_wood_knock": 0.0000757737725507468,
+    "engine": 0.0001899117196444422,
+    "glass_breaking": 0.00004869161421083845,
+    "rain": 0.00011065942817367613,
+    "siren": 0.9980500936508179,
+    "vacuum_cleaner": 0.00009659271745476872,
+    "wind": 0.000032235071557806805
   },
-  "model_version": "hearhere-rf-v2",
+  "model_version": "hearhere-panns-v2",
   "processing_ms": 123.4
 }
 ```
@@ -84,13 +86,12 @@ from hearhere_audio.predict import AudioPredictor, predict_file
 
 # For B: create once during service startup and reuse.
 predictor = AudioPredictor(
-    model_path="models/hearhere_rf.joblib",
     metadata_path="models/model_metadata.json",
 )
 result = predictor.predict_file("example.wav")
 
 # One-shot scripts can use the agreed function signature.
-result = predict_file("example.wav", "models/hearhere_rf.joblib", "models/model_metadata.json")
+result = predict_file("example.wav", metadata_path="models/model_metadata.json")
 ```
 
 The one-shot function loads a model on each call. Use the persistent object in a server. Defaults resolve relative to this package's project root; explicitly supplied relative paths resolve relative to the process's working directory.
@@ -105,7 +106,7 @@ def predict(audio_path):
     return predict_label_score(audio_path, predictor)
 ```
 
-The tuple's second item is the uncalibrated `model_score`, even if a legacy caller calls it confidence. This tuple helper is not the current HTTP response: the current server already has real inference and can select a different alert candidate from the top class. API consumers must preserve that distinction. See `docs/A2_handoff.md` and `docs/classify_api.md`. The published A2 branch is based on ai_david and preserves A1's canonical model/preprocessing/threshold files. B/D supplies the running backend.
+The tuple's second item is the uncalibrated `model_score`, even if a legacy caller calls it confidence. This tuple helper is not the current HTTP response: the current server already has real inference and can select a different alert candidate from the top class. API consumers must preserve that distinction. See `docs/A2_handoff.md` and `docs/classify_api.md`. The `dev` branch carries the selected model, preprocessing and threshold artifacts together. B/D supplies the running backend; LinuxONE compatibility remains unverified.
 
 ## Audio and timing contract
 
@@ -114,7 +115,7 @@ The tuple's second item is the uncalibrated `model_score`, even if a legacy call
 - At most five seconds by source frame count. Shorter audio is zero-padded to 80,000 samples. Longer audio is rejected; the caller supplies windows.
 - Empty, corrupt and non-finite inputs raise `AudioProcessingError`.
 - Files larger than 10 MiB are rejected before decoding. Set `max_audio_bytes` on the predictor to adjust the local file guard; B must also limit HTTP uploads and decoded request size.
-- Features: MFCC 0–19 means followed by MFCC 0–19 standard deviations, exactly 40 finite values.
+- Selected features: one finite 2048-value PANNs CNN14 embedding from each shared mono 16 kHz, five-second window. The Random Forest baseline uses the 40-value MFCC extractor.
 - Unknown/background sounds can still receive a confident known-class score. Silence is accepted as valid audio. No unknown-sound detector or silence-rejection policy is claimed here.
 - `processing_ms` includes local header validation, feature extraction and model scoring. It excludes model loading, microphone-window collection and network transport.
 - The first feature call can be much slower due to startup/JIT work. Run one startup prediction with a known WAV before marking the service ready, then measure warm requests separately.

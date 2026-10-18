@@ -1,0 +1,26 @@
+{
+  "artifact_status": "local_warm_inference_benchmark",
+  "audio_path": "examples/1-31482-A-42.wav",
+  "audio_sha256": "e4c640a001c2abe808389c90b90ba7084fb1922d58235e3ec95c18c4afb4ef5c",
+  "first_inference_warmup_ms": 99.64883400243707,
+  "iterations": 25,
+  "latency_ms": {
+    "maximum": 27.987167006358504,
+    "median": 26.8542920020991,
+    "minimum": 25.723124999785796,
+    "p95": 27.709959002095275
+  },
+  "model_sha256": "ebab2c16465171c6f8001d820bb148b4036f3b8bdf0e049487ac30d405dfa164",
+  "model_startup_ms": 1672.2357499966165,
+  "model_version": "hearhere-panns-v2",
+  "notes": "Warm local predictor timing includes WAV header validation, preprocessing, embedding extraction and classifier scoring; it excludes HTTP transport and model startup. This local result does not verify LinuxONE latency.",
+  "request_cadence_ms": 1000,
+  "runtime": {
+    "architecture": "arm64",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.3",
+    "torch": "2.10.0",
+    "torchlibrosa": "0.1.0"
+  },
+  "within_one_second_cadence": true
+}

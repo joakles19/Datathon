@@ -23,7 +23,7 @@ CLASSES = (
     "wind",
 )
 # v2 expands the classifier vocabulary while excluding keyboard typing.
-MODEL_VERSION = "hearhere-rf-v2"
+MODEL_VERSION = "hearhere-v2"
 ALERT_CLASSES = (
     "door_wood_knock",
     "siren",

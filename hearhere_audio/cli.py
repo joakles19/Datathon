@@ -11,7 +11,7 @@ from .predict import DEFAULT_METADATA_PATH, DEFAULT_MODEL_PATH, ModelLoadError, 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Classify one WAV of at most five seconds using HearHere.")
     parser.add_argument("audio_path", help="WAV file to classify")
-    parser.add_argument("--model", default=str(DEFAULT_MODEL_PATH), help="Path to A1's joblib model")
+    parser.add_argument("--model", default=None, help="Override the model file declared in model metadata")
     parser.add_argument("--metadata", default=str(DEFAULT_METADATA_PATH), help="Path to matching model metadata JSON")
     parser.add_argument("--pretty", action="store_true", help="Indent JSON output")
     args = parser.parse_args(argv)

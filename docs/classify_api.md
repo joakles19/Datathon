@@ -37,7 +37,7 @@ curl.exe -X POST http://127.0.0.1:8000/classify -F "file=@examples/1-31482-A-42.
 | `predicted_label` | A class with the highest model score |
 | `label` | Backend-selected important-sound candidate; falls back to top class when none qualifies |
 | `confidence` | Uncalibrated score associated with `scores[label]` |
-| `scores` | All ten uncalibrated v2 Random Forest scores |
+| `scores` | All ten uncalibrated scores from the selected model |
 | `action` | Backend result: `alert`, `ignore` or `suppressed` |
 | `confirmation` | `pending` while a live-monitor sound awaits a second matching window; `confirmed` after the rule is met; `not_required` for ordinary requests |
 | `priority`, `message` | Server-provided display information, possibly null |
@@ -46,7 +46,7 @@ curl.exe -X POST http://127.0.0.1:8000/classify -F "file=@examples/1-31482-A-42.
 
 For example, `predicted_label` may be `rain` at 0.40 while `label` is `siren` at 0.31 after backend selection. In that case `confidence` is 0.31. Display and store these meanings correctly; do not assume the two labels are identical.
 
-Class scores sum to one by estimator construction, but they are not calibrated real-world event probabilities. `action` and notification behavior remain server decisions. The client validates response structure and score mapping; it never reselects thresholds, replaces labels, derives an action from score alone, or changes event state itself.
+Class scores sum to one by estimator construction, but they are not calibrated real-world event probabilities. The current Fold 4 selection enables five alert classes and leaves `car_horn` disabled because it did not meet the 85% validation-precision criterion; its score remains in every response. `action` and notification behavior remain server decisions. The client validates response structure and score mapping; it never reselects thresholds, replaces labels, derives an action from score alone, or changes event state itself.
 
 ## Python API consumer
 
