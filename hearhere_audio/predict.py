@@ -142,7 +142,7 @@ class AudioPredictor:
         self.feature_type = self.metadata["feature_extractor"].get("type", "mfcc")
         self.model_path = Path(model_path) if model_path is not None else DEFAULT_MODEL_PATH
         metadata_model_path = self.metadata.get("model_file")
-        if model_path is None or model_path == DEFAULT_MODEL_PATH:
+        if self.model_path == DEFAULT_MODEL_PATH:
             if isinstance(metadata_model_path, str):
                 self.model_path = self.metadata_path.parent / metadata_model_path
         try:

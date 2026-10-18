@@ -10,6 +10,7 @@ from hearhere_audio.inference import (
     DEFAULT_THRESHOLDS_PATH,
     HearHereClassifier,
     ModelArtifactError,
+    ModelPredictionError,
 )
 
 
@@ -32,6 +33,21 @@ def test_classifier_returns_all_class_scores_and_model_version():
     assert "keyboard_typing" not in prediction["scores"]
     assert len(prediction["scores"]) == 10
     assert sum(prediction["scores"].values()) == pytest.approx(1.0)
+
+
+def test_classifier_resolves_metadata_model_file_for_string_default_path():
+    classifier = HearHereClassifier(model_path=str(DEFAULT_MODEL_PATH))
+
+    assert classifier.model_path.name == "hearhere_panns_lr.joblib"
+    assert classifier.metadata["model_file"] == classifier.model_path.name
+
+
+def test_classifier_rejects_invalid_model_scores(monkeypatch):
+    classifier = HearHereClassifier()
+    monkeypatch.setattr(classifier.model, "predict_proba", lambda _: np.full((1, 10), np.nan))
+
+    with pytest.raises(ModelPredictionError, match="invalid class scores"):
+        classifier.predict_bytes(wav_bytes())
 
 
 def test_classifier_rejects_unreadable_audio():

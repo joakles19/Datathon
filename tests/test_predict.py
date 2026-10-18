@@ -95,6 +95,12 @@ class PredictorTests(unittest.TestCase):
             self.assertEqual(load.call_count, 1)
         self.assertEqual(first["scores"], second["scores"])
 
+    def test_predictor_resolves_metadata_model_file_for_string_default_path(self):
+        predictor = AudioPredictor(str(ROOT / "models" / "hearhere_rf.joblib"), METADATA)
+
+        self.assertEqual(predictor.model_path.name, "hearhere_panns_lr.joblib")
+        self.assertEqual(predictor.metadata["model_file"], predictor.model_path.name)
+
     def test_save_reload_preserves_real_model_output(self):
         model_path = self.path / "roundtrip.joblib"
         joblib.dump(self.predictor.model, model_path)

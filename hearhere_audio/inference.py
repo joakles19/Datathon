@@ -29,6 +29,10 @@ class ModelArtifactError(RuntimeError):
     """Raised when model metadata and inference artifacts do not match."""
 
 
+class ModelPredictionError(RuntimeError):
+    """Raised when the loaded estimator returns an invalid score vector."""
+
+
 class HearHereClassifier:
     """A loaded model with its matching validation-selected thresholds."""
 
@@ -44,7 +48,7 @@ class HearHereClassifier:
         self.metadata = self._read_json(self.metadata_path)
         self.thresholds = self._read_json(self.thresholds_path)
         metadata_model_path = self.metadata.get("model_file")
-        if model_path == DEFAULT_MODEL_PATH and isinstance(metadata_model_path, str):
+        if self.model_path == DEFAULT_MODEL_PATH and isinstance(metadata_model_path, str):
             self.model_path = self.metadata_path.parent / metadata_model_path
         if not self.model_path.is_file():
             raise ModelArtifactError(f"Trained model not found: {self.model_path}")
@@ -141,7 +145,19 @@ class HearHereClassifier:
                 raise AudioProcessingError(str(exc)) from exc
         else:
             features = extract_features_from_bytes(audio_bytes).reshape(1, -1)
-        scores = self.model.predict_proba(features)[0]
+        try:
+            probabilities = np.asarray(self.model.predict_proba(features), dtype=np.float64)
+        except Exception as exc:
+            raise ModelPredictionError(f"Model inference failed: {exc}") from exc
+        if (
+            probabilities.shape != (1, len(self.model.classes_))
+            or not np.isfinite(probabilities).all()
+            or np.any(probabilities < 0)
+            or np.any(probabilities > 1)
+            or not np.isclose(probabilities.sum(), 1.0, rtol=0, atol=1e-6)
+        ):
+            raise ModelPredictionError("Model returned invalid class scores")
+        scores = probabilities[0]
         score_by_class = {
             label: float(score)
             for label, score in zip(self.model.classes_, scores)

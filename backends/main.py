@@ -1,15 +1,17 @@
-import sqlite3, threading, time
+import sqlite3
+import threading
+import time
 from collections import OrderedDict, deque
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import File, FastAPI, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from hearhere_audio.config import ALERT_CLASSES
 from hearhere_audio.features import AudioProcessingError
-from hearhere_audio.inference import HearHereClassifier
+from hearhere_audio.inference import HearHereClassifier, ModelPredictionError
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MONITOR_WINDOW_HISTORY = 3
@@ -131,6 +133,8 @@ def classify(
         result = classifier.predict_bytes(audio)
     except AudioProcessingError as exc:
         raise HTTPException(422, str(exc))
+    except ModelPredictionError as exc:
+        raise HTTPException(500, "Model inference failed") from exc
     processing_ms = round((time.perf_counter() - started) * 1000, 1)
 
     scores = result["scores"]
@@ -179,7 +183,7 @@ def classify(
 
 
 @app.get("/events")
-def events(limit: int = 50):
+def events(limit: int = Query(default=50, ge=1, le=200)):
     with lock:
         rows = db.execute("SELECT * FROM events ORDER BY ts DESC LIMIT ?", (limit,)).fetchall()
     return [dict(r) for r in rows]

@@ -195,6 +195,13 @@ def test_classify_rejects_oversized_upload(monkeypatch):
     assert response.status_code == 413
 
 
+def test_events_limit_is_bounded():
+    client = TestClient(backend.app)
+
+    assert client.get("/events?limit=0").status_code == 422
+    assert client.get("/events?limit=201").status_code == 422
+
+
 def test_classify_runs_loaded_model_on_uploaded_wav(monkeypatch):
     database = FakeDatabase()
     monkeypatch.setattr(backend, "db", database)

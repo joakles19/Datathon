@@ -67,6 +67,7 @@ This covers audio features, model loading and inference, the HTTP backend, and t
 - [A1 parity confirmation](docs/A1_parity_confirmation.json)
 - [Local HTTP integration evidence](docs/classify_integration_verification.json)
 - [Model comparison and artifact contract](docs/model-artifacts.md)
+- [Project structure and local runtime boundaries](docs/project-structure.md)
 - [A1 workflow README retained for reference](docs/A1_model_workflow.md)
 
-Local virtual environments, credentials, downloaded datasets, recordings, runtime databases and logs are excluded from Git. LinuxONE execution and a shared reachable API remain deployment checks for D.
+Local virtual environments, credentials, downloaded datasets, recordings, runtime databases and logs are excluded from Git. LinuxONE documentation is retained for deployment history; local macOS execution is the active development path.

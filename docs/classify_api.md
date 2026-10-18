@@ -62,6 +62,12 @@ print(result["action"])           # Preserve alert/ignore/suppressed
 
 The client does not load local model or threshold artifacts. It uses the existing package installation and checks the WAV signature/size before posting; decoding, duration checks and feature extraction happen on the server. It does not open a live microphone.
 
+## Events endpoint
+
+`GET /events?limit=N` returns the newest events, where `N` must be between 1 and 200. The default is 50. Values outside that range return HTTP 422 before querying SQLite.
+
+`POST /events/{event_id}/ack` acknowledges one stored event and returns `{"ok": true}`. A missing event returns HTTP 404.
+
 ## Errors and side effects
 
 - Invalid uploaded audio is returned by the inspected server as HTTP 422.
